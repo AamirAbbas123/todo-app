@@ -1,0 +1,3569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Todo V 1.22</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f0f4f8;
+      --surface:   #ffffff;
+      --surface2:  #f7f9fc;
+      --border:    #e2e8f0;
+      --border2:   #cbd5e1;
+      --accent:    #4f6ef7;
+      --accent-rgb: 79,110,247;
+      --accent2:   #db2777;
+      --accent2-rgb: 219,39,119;
+      --habit:     #059669;
+      --habit-rgb: 5,150,105;
+      --repeat:    #2563eb;
+      --repeat-rgb: 37,99,235;
+      --urgent:    #dc2626;
+      --urgent-rgb: 220,38,38;
+      --important: #d97706;
+      --important-rgb: 217,119,6;
+      --overdue:   #dc2626;
+      --overdue-rgb: 220,38,38;
+      --streak:    #ea580c;
+      --streak-rgb: 234,88,12;
+      --q1: #dc2626; --q2: #d97706; --q3: #2563eb; --q4: #94a3b8;
+      --text:  #0f172a;
+      --muted: #64748b;
+      --done:  #94a3b8;
+      --radius: 14px;
+      --glow-accent:    0 0 0 3px rgba(79,110,247,.14);
+      --shadow-card:    0 1px 4px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+      --shadow-card-hov:0 4px 16px rgba(15,23,42,.1),  0 2px 6px rgba(15,23,42,.06);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 15% 10%, rgba(79,110,247,.06) 0%, transparent 55%),
+                        radial-gradient(ellipse at 85% 90%, rgba(5,150,105,.05) 0%, transparent 50%);
+      color: var(--text);
+      min-height: 100vh; padding: 28px 16px 80px;
+    }
+    .app { max-width: 1160px; margin: 0 auto; }
+
+    /* ── Header ── */
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 {
+      font-size: 2.1rem; font-weight: 800; letter-spacing: -.6px;
+      background: linear-gradient(135deg, #0f172a 30%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; display: inline-block;
+    }
+    header h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: var(--muted); font-size: .84rem; margin-top: 6px; letter-spacing: .2px; }
+
+    /* ══════════════════════════════════════════
+       DAILY QUOTE CARD
+    ══════════════════════════════════════════ */
+    .quote-card {
+      position: relative; overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 26px 20px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-card);
+      transition: box-shadow .2s;
+    }
+    .quote-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        rgba(79,110,247,.05) 0%,
+        rgba(219,39,119,.03) 50%,
+        transparent 100%);
+      pointer-events: none;
+    }
+    .quote-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .quote-card:hover { box-shadow: var(--shadow-card-hov); }
+
+    .quote-top {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 14px;
+    }
+    .quote-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .65rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--accent);
+    }
+    .quote-label-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      animation: pulseDot 2.5s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(.7); }
+    }
+    .quote-day-badge {
+      font-size: .63rem; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 10px; font-weight: 600;
+    }
+
+    .quote-body { display: flex; gap: 16px; align-items: flex-start; }
+    .quote-mark {
+      font-size: 3.6rem; line-height: .8;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      flex-shrink: 0; margin-top: -2px; user-select: none;
+      font-family: Georgia, serif;
+    }
+    .quote-content { flex: 1; min-width: 0; }
+    .quote-text {
+      font-size: 1.05rem; font-weight: 500; line-height: 1.65;
+      color: var(--text); font-style: italic;
+      letter-spacing: .1px;
+    }
+    .quote-author {
+      margin-top: 10px; font-size: .78rem; font-weight: 700;
+      color: var(--accent); display: flex; align-items: center; gap: 6px;
+    }
+    .quote-author::before {
+      content: ''; display: inline-block;
+      width: 22px; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px; flex-shrink: 0;
+    }
+    .quote-author span { color: var(--muted); font-weight: 400; }
+
+    .quote-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 16px; padding-top: 13px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .quote-nav { display: flex; gap: 6px; }
+    .quote-nav-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px; padding: 5px 12px;
+      font-size: .73rem; font-weight: 700; cursor: pointer;
+      transition: all .18s; display: flex; align-items: center; gap: 5px;
+    }
+    .quote-nav-btn:hover {
+      background: rgba(var(--accent-rgb),.08);
+      border-color: var(--accent); color: var(--accent);
+    }
+    .quote-today-btn {
+      background: rgba(var(--accent-rgb),.08);
+      border: 1px solid rgba(var(--accent-rgb),.25);
+      color: var(--accent); border-radius: 8px; padding: 5px 14px;
+      font-size: .73rem; font-weight: 700; cursor: pointer;
+      transition: all .18s;
+    }
+    .quote-today-btn:hover {
+      background: rgba(var(--accent-rgb),.15);
+      box-shadow: 0 2px 8px rgba(var(--accent-rgb),.2);
+    }
+    .quote-counter {
+      font-size: .68rem; color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 10px;
+    }
+
+    /* quote fade animation */
+    .quote-content.fading { animation: quoteFade .28s ease; }
+    @keyframes quoteFade {
+      0%   { opacity: 1; transform: translateY(0); }
+      40%  { opacity: 0; transform: translateY(-6px); }
+      60%  { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Stats ── */
+    .stats { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+    .stat {
+      display:flex; flex-direction:column; align-items:center;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:10px 16px; min-width:72px;
+      box-shadow: var(--shadow-card);
+      transition: transform .15s, box-shadow .15s;
+      position: relative; overflow: hidden;
+    }
+    .stat::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:12px 12px 0 0;
+    }
+    .stat:hover { transform:translateY(-2px); box-shadow: var(--shadow-card-hov); }
+    .stat .num { font-size:1.35rem; font-weight:800; line-height:1.2; }
+    .stat .lbl { font-size:.63rem; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
+    .s-habit    .num { color:var(--habit); }    .s-habit::before    { background:var(--habit); }
+    .s-repeat   .num { color:var(--repeat); }   .s-repeat::before   { background:var(--repeat); }
+    .s-urgent   .num { color:var(--urgent); }   .s-urgent::before   { background:var(--urgent); }
+    .s-important .num{ color:var(--important); } .s-important::before{ background:var(--important); }
+    .s-overdue  .num { color:var(--overdue); }  .s-overdue::before  { background:var(--overdue); }
+    .s-done     .num { color:var(--accent); }   .s-done::before     { background:var(--accent); }
+    .s-archive  .num { color:var(--muted); }    .s-archive::before  { background:var(--border2); }
+
+    /* ── Progress Panel ── */
+    .progress-panel {
+      margin-bottom:24px; background:var(--surface);
+      border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden; box-shadow: var(--shadow-card);
+    }
+    .prog-strips { display:flex; border-bottom:1px solid var(--border); }
+    .prog-strip {
+      flex:1; padding:12px 16px; display:flex; flex-direction:column; gap:5px;
+      border-right:1px solid var(--border); position: relative;
+    }
+    .prog-strip:last-child { border-right:none; }
+    .prog-strip::before { content:''; position:absolute; top:0; left:0; bottom:0; width:3px; }
+    .prog-strip:nth-child(1)::before { background: var(--habit); }
+    .prog-strip:nth-child(2)::before { background: var(--accent); }
+    .prog-strip:nth-child(3)::before { background: var(--overdue); }
+    .ps-label { font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; padding-left:4px; }
+    .ps-bar-bg { background:var(--surface2); height:5px; border-radius:3px; overflow:hidden; border:1px solid var(--border); }
+    .ps-bar-fill { height:100%; border-radius:3px; transition:width .45s cubic-bezier(.4,0,.2,1); }
+    .ps-count { font-size:.73rem; color:var(--text); font-weight:700; padding-left:4px; }
+    .ps-pct   { font-size:.68rem; color:var(--muted); }
+    .prog-main { padding:14px 20px; }
+    .prog-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+    .prog-title { font-size:.82rem; color:var(--muted); display:flex; align-items:baseline; gap:7px; }
+    .prog-title strong { font-size:1.25rem; font-weight:800; color:var(--text); }
+    .prog-title .prog-date { font-size:.71rem; color:var(--muted); }
+    /* btn-archive-done removed — auto-archive on completion */
+    .prog-bar-bg { background:var(--surface2); height:10px; border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+    .prog-bar-fill {
+      height:100%; border-radius:6px; transition:width .5s cubic-bezier(.4,0,.2,1);
+      background: linear-gradient(90deg, var(--accent), #818cf8, #6366f1);
+    }
+    .prog-bar-fill.full { background: linear-gradient(90deg, var(--habit), #34d399); box-shadow:0 0 8px rgba(var(--habit-rgb),.35); }
+    .prog-note { font-size:.69rem; color:var(--muted); margin-top:7px; line-height:1.5; }
+
+    /* ── Add Panel ── */
+    .add-panel {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 22px; margin-bottom:22px;
+      box-shadow: var(--shadow-card);
+    }
+    .add-panel h2 { font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:14px; font-weight:700; }
+    .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+    .form-group { display:flex; flex-direction:column; gap:5px; flex:1; min-width:120px; }
+    .form-group label { font-size:.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:600; }
+    input[type="text"], input[type="date"], select {
+      background:var(--surface2); border:1px solid var(--border2);
+      border-radius:9px; color:var(--text); padding:9px 12px;
+      font-size:.87rem; outline:none; transition:border-color .2s, box-shadow .2s;
+      width:100%; color-scheme:light;
+    }
+    input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12); }
+    input::placeholder { color:var(--muted); }
+    select option { background:var(--surface); color:var(--text); }
+    .freq-field, .onetime-fields { display:none; }
+    .freq-field.show, .onetime-fields.show { display:flex; }
+    .btn { padding:9px 22px; border-radius:10px; border:none; cursor:pointer; font-size:.87rem; font-weight:700; transition:all .18s; white-space:nowrap; letter-spacing:.2px; }
+    .btn:active { transform:scale(.96); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      color:#fff; box-shadow:0 2px 10px rgba(var(--accent-rgb),.3);
+    }
+    .btn-primary:hover { box-shadow:0 4px 18px rgba(var(--accent-rgb),.42); transform:translateY(-1px); }
+
+    /* ── Tab Bar ── */
+    .tab-bar {
+      display:flex; gap:4px; margin-bottom:22px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:5px; box-shadow:var(--shadow-card);
+    }
+    .tab-btn {
+      flex:1; padding:9px 10px; border-radius:10px; border:none;
+      background:none; color:var(--muted); font-size:.8rem; font-weight:700;
+      cursor:pointer; transition:all .2s; display:flex; align-items:center;
+      justify-content:center; gap:6px; letter-spacing:.2px;
+    }
+    .tab-btn:hover { color:var(--text); background:rgba(15,23,42,.04); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(var(--accent-rgb),.1), rgba(var(--accent-rgb),.05));
+      color:var(--accent);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 1px 3px rgba(var(--accent-rgb),.1);
+    }
+    .tab-btn .tab-badge { background:rgba(15,23,42,.06); color:var(--muted); font-size:.63rem; padding:1px 7px; border-radius:10px; font-weight:700; }
+    .tab-btn.active .tab-badge { background:rgba(var(--accent-rgb),.14); color:var(--accent); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── Task Columns ── */
+    .columns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+    @media (max-width:780px) { .columns { grid-template-columns:1fr; } }
+    .col { display:flex; flex-direction:column; gap:9px; }
+    .col-header { display:flex; align-items:center; gap:9px; padding:11px 14px; border-radius:var(--radius); font-weight:700; font-size:.85rem; }
+    .col-header .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .col-header .count { margin-left:auto; font-size:.69rem; font-weight:700; background:rgba(15,23,42,.07); padding:2px 9px; border-radius:20px; color:var(--muted); }
+    .col-habits .col-header  { background:rgba(var(--habit-rgb),.08);  color:var(--habit); }
+    .col-habits .col-header .dot  { background:var(--habit);  box-shadow:0 0 6px rgba(var(--habit-rgb),.4); }
+    .col-repeat .col-header  { background:rgba(var(--repeat-rgb),.08); color:var(--repeat); }
+    .col-repeat .col-header .dot  { background:var(--repeat); box-shadow:0 0 6px rgba(var(--repeat-rgb),.4); }
+    .col-onetime .col-header { background:rgba(var(--accent-rgb),.08); color:var(--accent); }
+    .col-onetime .col-header .dot { background:var(--accent); box-shadow:0 0 6px rgba(var(--accent-rgb),.4); }
+
+    /* ── Drag & Drop ── */
+    .drag-handle {
+      display:flex; flex-direction:column; gap:2px; cursor:grab;
+      padding:4px 2px; flex-shrink:0; margin-top:2px;
+      opacity:.35; transition:opacity .15s;
+    }
+    .drag-handle:hover { opacity:.7; }
+    .drag-handle:active { cursor:grabbing; }
+    .drag-handle span {
+      display:block; width:12px; height:2px; border-radius:1px;
+      background:var(--muted);
+    }
+    .task-card.dragging {
+      opacity:.3; transform:scale(.97) !important;
+      box-shadow:none !important;
+    }
+    .task-card.drag-over-above {
+      border-top:2px solid var(--accent) !important;
+      margin-top:-1px;
+    }
+    .task-card.drag-over-below {
+      border-bottom:2px solid var(--accent) !important;
+      margin-bottom:-1px;
+    }
+    .col > div:not(.col-header) { transition:padding .15s; }
+
+    /* ── Task Card ── */
+    .task-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-left:3px solid transparent; border-radius:var(--radius);
+      padding:12px 13px; display:flex; align-items:flex-start; gap:10px;
+      transition:transform .15s, box-shadow .15s, opacity .2s;
+      animation:slideIn .2s ease; box-shadow:var(--shadow-card);
+    }
+    .task-card:hover:not(.done-today):not(.dragging) { transform:translateY(-1px); box-shadow:var(--shadow-card-hov); }
+    @keyframes slideIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+    .task-card.done-today { opacity:.45; }
+    .task-card.done-today .task-text { text-decoration:line-through; color:var(--done); }
+    .task-card.overdue { border-color:rgba(var(--overdue-rgb),.25); background:rgba(var(--overdue-rgb),.02); }
+    .task-card.done-today { border-left-color:var(--done) !important; }
+    .col-habits  .task-card { border-left-color:var(--habit); }
+    .col-repeat  .task-card { border-left-color:var(--repeat); }
+    .onetime-both      { border-left-color:var(--accent2) !important; }
+    .onetime-urgent    { border-left-color:var(--urgent) !important; }
+    .onetime-important { border-left-color:var(--important) !important; }
+    .task-check {
+      width:18px; height:18px; border-radius:50%; border:2px solid var(--border2);
+      flex-shrink:0; cursor:pointer; margin-top:2px; display:flex;
+      align-items:center; justify-content:center;
+      transition:background .15s, border-color .15s, box-shadow .15s;
+    }
+    .task-card:not(.done-today) .task-check:hover { border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14); }
+    .task-card.done-today .task-check { background:var(--done); border-color:var(--done); }
+    .task-check svg { display:none; }
+    .task-card.done-today .task-check svg { display:block; }
+    .task-body { flex:1; min-width:0; }
+    .task-text { font-size:.86rem; line-height:1.45; word-break:break-word; }
+    .task-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+    .badge { font-size:.62rem; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; }
+    .badge-freq       { background:rgba(15,23,42,.06);            color:var(--muted); }
+    .badge-urgent     { background:rgba(var(--urgent-rgb),.1);    color:var(--urgent); }
+    .badge-important  { background:rgba(var(--important-rgb),.1); color:var(--important); }
+    .badge-cat        { background:rgba(15,23,42,.05);            color:var(--muted); }
+    .badge-deadline   { background:rgba(var(--repeat-rgb),.09);   color:var(--repeat); }
+    .badge-overdue    { background:rgba(var(--overdue-rgb),.1);   color:var(--overdue); font-weight:800; }
+    .badge-streak     { background:rgba(var(--streak-rgb),.1);    color:var(--streak); font-weight:800; }
+    .badge-done-today { background:rgba(var(--habit-rgb),.1);     color:var(--habit); }
+    .badge-completions{ background:rgba(var(--repeat-rgb),.08);   color:var(--repeat); }
+    .badge-recur-note { background:rgba(var(--accent-rgb),.07); color:var(--accent); font-size:.59rem; font-style:italic; padding:2px 8px; border-radius:20px; }
+    .task-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:.88rem; line-height:1; padding:3px 5px; border-radius:5px; transition:color .15s, background .15s; flex-shrink:0; }
+    .task-del:hover { color:var(--urgent); background:rgba(var(--urgent-rgb),.08); }
+    .empty { text-align:center; color:var(--muted); font-size:.78rem; padding:22px 0; border:1px dashed var(--border2); border-radius:var(--radius); }
+
+    /* ── Expand Toggle ── */
+    .task-expand-btn {
+      background:none; border:none; cursor:pointer; color:var(--muted);
+      font-size:.72rem; line-height:1; padding:3px 5px; border-radius:5px;
+      transition:color .15s, transform .2s; flex-shrink:0;
+    }
+    .task-expand-btn:hover { color:var(--accent); }
+    .task-expand-btn.open { transform:rotate(180deg); color:var(--accent); }
+
+    /* ── Expandable Detail Panel ── */
+    .task-detail {
+      display:none; border-top:1px solid var(--border); margin-top:10px;
+      padding-top:12px; animation:slideIn .2s ease;
+    }
+    .task-detail.open { display:block; }
+    .task-card.expanded { border-color:rgba(var(--accent-rgb),.3); }
+
+    /* Notes */
+    .td-section { margin-bottom:14px; }
+    .td-section:last-child { margin-bottom:0; }
+    .td-label {
+      font-size:.62rem; font-weight:800; text-transform:uppercase;
+      letter-spacing:.8px; color:var(--muted); margin-bottom:6px;
+      display:flex; align-items:center; gap:6px;
+    }
+    .td-label svg { width:12px; height:12px; fill:currentColor; }
+    .td-notes-input {
+      width:100%; min-height:54px; max-height:180px; resize:vertical;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:9px; color:var(--text); padding:9px 12px;
+      font-size:.82rem; font-family:inherit; line-height:1.5;
+      outline:none; transition:border-color .2s, box-shadow .2s;
+    }
+    .td-notes-input:focus {
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1);
+    }
+    .td-notes-input::placeholder { color:var(--muted); }
+    .td-notes-display {
+      font-size:.82rem; color:var(--text); line-height:1.6;
+      white-space:pre-wrap; word-break:break-word;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:9px; padding:9px 12px; cursor:pointer;
+      transition:border-color .2s; min-height:30px;
+    }
+    .td-notes-display:hover { border-color:rgba(var(--accent-rgb),.35); }
+    .td-notes-empty {
+      color:var(--muted); font-style:italic; font-size:.78rem; cursor:pointer;
+      padding:6px 0;
+    }
+    .td-notes-empty:hover { color:var(--accent); }
+
+    /* Subtasks / Checklist */
+    .subtask-list { display:flex; flex-direction:column; gap:5px; }
+    .subtask-item {
+      display:flex; align-items:center; gap:8px; padding:5px 8px;
+      border-radius:8px; transition:background .15s;
+    }
+    .subtask-item:hover { background:rgba(15,23,42,.03); }
+    .subtask-check {
+      width:15px; height:15px; border-radius:4px; border:2px solid var(--border2);
+      flex-shrink:0; cursor:pointer; display:flex; align-items:center;
+      justify-content:center; transition:all .15s;
+    }
+    .subtask-check:hover { border-color:var(--accent); }
+    .subtask-item.st-done .subtask-check {
+      background:var(--done); border-color:var(--done);
+    }
+    .subtask-check svg { display:none; }
+    .subtask-item.st-done .subtask-check svg { display:block; }
+    .subtask-item.st-done .st-text { text-decoration:line-through; color:var(--done); }
+    .st-text {
+      flex:1; font-size:.8rem; color:var(--text); word-break:break-word;
+      border:none; background:none; outline:none; font-family:inherit;
+      padding:0;
+    }
+    .st-del {
+      background:none; border:none; cursor:pointer; color:var(--muted);
+      font-size:.7rem; padding:2px 4px; border-radius:4px;
+      transition:color .15s; opacity:0;
+    }
+    .subtask-item:hover .st-del { opacity:1; }
+    .st-del:hover { color:var(--urgent); }
+
+    .subtask-add-row { display:flex; gap:6px; margin-top:6px; }
+    .subtask-add-input {
+      flex:1; background:var(--surface2); border:1px solid var(--border);
+      border-radius:8px; color:var(--text); padding:6px 10px;
+      font-size:.8rem; font-family:inherit; outline:none;
+      transition:border-color .2s;
+    }
+    .subtask-add-input:focus { border-color:var(--accent); }
+    .subtask-add-input::placeholder { color:var(--muted); }
+    .subtask-add-btn {
+      background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.2);
+      color:var(--accent); border-radius:8px; padding:6px 12px;
+      font-size:.75rem; font-weight:700; cursor:pointer; transition:all .2s;
+      white-space:nowrap;
+    }
+    .subtask-add-btn:hover {
+      background:rgba(var(--accent-rgb),.16); box-shadow:0 1px 6px rgba(var(--accent-rgb),.15);
+    }
+
+    /* Subtask progress mini bar */
+    .st-progress {
+      display:flex; align-items:center; gap:8px; margin-top:4px;
+      font-size:.62rem; color:var(--muted); font-weight:700;
+    }
+    .st-prog-bar { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; max-width:120px; }
+    .st-prog-fill { height:100%; border-radius:2px; background:var(--habit); transition:width .3s; }
+
+    /* File Attachments */
+    .file-list { display:flex; flex-direction:column; gap:6px; }
+    .file-item {
+      display:flex; align-items:center; gap:10px; padding:8px 12px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; font-size:.78rem; transition:all .18s;
+    }
+    .file-item:hover {
+      border-color:rgba(var(--accent-rgb),.3);
+      box-shadow:0 2px 8px rgba(15,23,42,.06);
+    }
+    .file-icon {
+      font-size:.85rem; flex-shrink:0;
+      width:28px; height:28px; border-radius:7px;
+      background:rgba(var(--accent-rgb),.08);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .file-name { flex:1; color:var(--text); font-weight:600; word-break:break-all; line-height:1.3; }
+    .file-size {
+      color:var(--muted); font-size:.64rem; font-weight:600;
+      background:rgba(15,23,42,.04); padding:2px 7px; border-radius:20px;
+    }
+    .file-del {
+      background:none; border:1px solid transparent; cursor:pointer; color:var(--muted);
+      font-size:.7rem; padding:3px 6px; border-radius:6px;
+      transition:all .15s; opacity:0;
+    }
+    .file-item:hover .file-del { opacity:1; }
+    .file-del:hover { color:var(--urgent); background:rgba(var(--urgent-rgb),.08); border-color:rgba(var(--urgent-rgb),.15); }
+    .file-download {
+      background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.15);
+      cursor:pointer; color:var(--accent);
+      font-size:.66rem; font-weight:700; padding:4px 10px; border-radius:6px;
+      transition:all .18s; display:flex; align-items:center; gap:4px;
+    }
+    .file-download:hover {
+      background:rgba(var(--accent-rgb),.16); border-color:var(--accent);
+      box-shadow:0 2px 8px rgba(var(--accent-rgb),.15);
+    }
+
+    .file-add-row { margin-top:8px; }
+    .file-add-label {
+      display:inline-flex; align-items:center; gap:8px; padding:9px 18px;
+      background:linear-gradient(135deg, rgba(var(--accent-rgb),.06), rgba(var(--accent-rgb),.02));
+      border:1.5px solid rgba(var(--accent-rgb),.22);
+      border-radius:10px; color:var(--accent); font-size:.78rem;
+      font-weight:700; cursor:pointer; transition:all .22s;
+      letter-spacing:.2px; position:relative; overflow:hidden;
+    }
+    .file-add-label::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(135deg, rgba(var(--accent-rgb),.08), transparent);
+      opacity:0; transition:opacity .22s;
+    }
+    .file-add-label:hover::before { opacity:1; }
+    .file-add-label:hover {
+      border-color:var(--accent); color:var(--accent);
+      box-shadow:0 2px 12px rgba(var(--accent-rgb),.18);
+      transform:translateY(-1px);
+    }
+    .file-add-label:active { transform:translateY(0) scale(.97); }
+    .file-add-label input { display:none; }
+    .file-add-label .attach-icon {
+      display:flex; align-items:center; justify-content:center;
+      width:22px; height:22px; border-radius:6px;
+      background:rgba(var(--accent-rgb),.12);
+      transition:background .2s;
+    }
+    .file-add-label:hover .attach-icon {
+      background:rgba(var(--accent-rgb),.22);
+    }
+    .file-add-label .attach-icon svg {
+      width:13px; height:13px; fill:none; stroke:var(--accent);
+      stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+    }
+
+    /* indicators on collapsed card */
+    .badge-notes { background:rgba(var(--accent-rgb),.08); color:var(--accent); }
+    .badge-subtasks { background:rgba(var(--habit-rgb),.08); color:var(--habit); }
+    .badge-files {
+      background:linear-gradient(135deg, rgba(var(--repeat-rgb),.1), rgba(var(--accent-rgb),.06));
+      color:var(--repeat); border:1px solid rgba(var(--repeat-rgb),.12);
+    }
+
+    /* ── Matrix ── */
+    .matrix-intro { text-align:center; color:var(--muted); font-size:.8rem; margin-bottom:18px; }
+    .matrix-intro strong { color:var(--text); }
+    .matrix-axis-labels { display:grid; grid-template-columns:42px 1fr 1fr; grid-template-rows:26px 1fr 1fr; gap:10px; }
+    .axis-col-label { display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.9px; }
+    .axis-col-label.urgent-col { color:var(--urgent); }
+    .axis-row-label { display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg); font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.9px; }
+    .axis-row-label.important-row { color:var(--important); }
+    .matrix-quadrant { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; min-height:170px; display:flex; flex-direction:column; gap:7px; box-shadow:var(--shadow-card); }
+    .q-header { display:flex; align-items:center; gap:7px; padding-bottom:9px; border-bottom:1px solid var(--border); margin-bottom:2px; }
+    .q-icon { font-size:1rem; }
+    .q-title { font-weight:800; font-size:.82rem; }
+    .q-sub { font-size:.66rem; color:var(--muted); margin-left:auto; font-style:italic; }
+    .q-count { font-size:.66rem; font-weight:800; background:rgba(15,23,42,.06); padding:1px 8px; border-radius:10px; color:var(--muted); }
+    .q1{border-top:3px solid var(--q1)} .q1 .q-title{color:var(--q1)}
+    .q2{border-top:3px solid var(--q2)} .q2 .q-title{color:var(--q2)}
+    .q3{border-top:3px solid var(--q3)} .q3 .q-title{color:var(--q3)}
+    .q4{border-top:3px solid var(--q4)} .q4 .q-title{color:var(--q4)}
+    .matrix-task { background:var(--surface2); border-radius:10px; padding:9px 11px; display:flex; align-items:flex-start; gap:9px; font-size:.82rem; border:1px solid var(--border); animation:slideIn .2s ease; transition:transform .15s, box-shadow .15s; }
+    .matrix-task:hover:not(.done-today) { transform:translateY(-1px); box-shadow:0 3px 10px rgba(15,23,42,.1); }
+    .matrix-task.done-today { opacity:.38; }
+    .matrix-task.done-today .mt-text { text-decoration:line-through; color:var(--done); }
+    .mt-check { width:16px; height:16px; border-radius:50%; border:2px solid var(--border2); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s, border-color .15s, box-shadow .15s; margin-top:1px; }
+    .matrix-task:not(.done-today) .mt-check:hover { border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14); }
+    .matrix-task.done-today .mt-check { background:var(--done); border-color:var(--done); }
+    .mt-check svg { display:none; }
+    .matrix-task.done-today .mt-check svg { display:block; }
+    .mt-body { flex:1; min-width:0; }
+    .mt-text { line-height:1.35; word-break:break-word; }
+    .mt-meta { display:flex; flex-wrap:wrap; gap:3px; margin-top:5px; }
+    .mt-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:.83rem; padding:2px 4px; border-radius:4px; transition:color .15s, background .15s; flex-shrink:0; }
+    .mt-del:hover { color:var(--urgent); background:rgba(var(--urgent-rgb),.08); }
+    @media (max-width:640px) { .matrix-axis-labels { grid-template-columns:1fr; } }
+
+    /* ── Calendar ── */
+    .cal-wrap { display:flex; flex-direction:column; gap:14px; }
+    .cal-nav { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 18px; box-shadow:var(--shadow-card); }
+    .cal-nav-btn { background:var(--surface2); border:1px solid var(--border2); color:var(--text); border-radius:9px; padding:7px 15px; font-size:.82rem; font-weight:700; cursor:pointer; transition:all .18s; }
+    .cal-nav-btn:hover { background:rgba(var(--accent-rgb),.08); border-color:var(--accent); color:var(--accent); }
+    .cal-nav-title { flex:1; text-align:center; font-size:1.1rem; font-weight:800; letter-spacing:-.3px; }
+    .cal-nav-title span { color:var(--muted); font-size:.84rem; font-weight:400; margin-left:6px; }
+    .btn-today { background:rgba(var(--accent-rgb),.08); border:1px solid rgba(var(--accent-rgb),.22); color:var(--accent); border-radius:9px; padding:7px 15px; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .18s; }
+    .btn-today:hover { background:rgba(var(--accent-rgb),.15); box-shadow:0 2px 10px rgba(var(--accent-rgb),.2); }
+    .cal-legend { display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:.68rem; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:9px 16px; box-shadow:var(--shadow-card); }
+    .cal-legend strong { color:var(--text); font-size:.7rem; margin-right:4px; }
+    .leg-item { display:flex; align-items:center; gap:5px; }
+    .leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .cal-dow { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+    .cal-dow span { font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); padding:6px 0; }
+    .cal-dow span:first-child, .cal-dow span:last-child { color:rgba(var(--urgent-rgb),.6); }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+    .cal-cell { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:8px 7px 3px; min-height:76px; cursor:pointer; position:relative; transition:all .18s; display:flex; flex-direction:column; box-shadow:var(--shadow-card); }
+    .cal-cell:hover { border-color:rgba(var(--accent-rgb),.45); background:rgba(var(--accent-rgb),.03); transform:translateY(-1px); box-shadow:var(--shadow-card-hov); }
+    .cal-cell.other-month { opacity:.22; pointer-events:none; }
+    .cal-cell.past-day { opacity:.5; }
+    .cal-cell.today { border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.05) !important; box-shadow:0 0 0 2px rgba(var(--accent-rgb),.18), var(--shadow-card) !important; }
+    .cal-cell.selected { border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.08) !important; box-shadow:0 0 0 3px rgba(var(--accent-rgb),.2), var(--shadow-card-hov) !important; }
+    .cal-cell.has-overdue { border-color:rgba(var(--overdue-rgb),.4) !important; }
+    .cal-cell.all-done:not(.today):not(.selected) { background:rgba(var(--habit-rgb),.05) !important; border-color:rgba(var(--habit-rgb),.25) !important; }
+    .cal-day-num { font-size:.77rem; font-weight:800; color:var(--muted); line-height:1; margin-bottom:5px; display:flex; align-items:center; gap:3px; }
+    .cal-cell.today    .cal-day-num { color:var(--accent); }
+    .cal-cell.selected .cal-day-num { color:var(--text); }
+    .cal-cell.weekend  .cal-day-num { color:rgba(var(--urgent-rgb),.55); }
+    .cal-all-done-icon { font-size:.6rem; color:var(--habit); }
+    .cal-dots { display:flex; flex-wrap:wrap; gap:3px; flex:1; align-content:flex-start; }
+    .cal-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .cal-dot.done-dot { opacity:.3; }
+    .cal-more { font-size:.57rem; color:var(--muted); }
+    .cal-cell-prog { height:3px; border-radius:0 0 10px 10px; background:var(--border); overflow:hidden; margin-top:5px; flex-shrink:0; }
+    .cal-cell-prog-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+    .cal-cell-prog-fill.p0    { background:transparent; }
+    .cal-cell-prog-fill.pfull { background:var(--habit); }
+    .cal-cell-prog-fill.phalf { background:var(--important); }
+    .cal-cell-prog-fill.plow  { background:var(--accent); }
+    .cal-detail { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; animation:slideIn .2s ease; box-shadow:var(--shadow-card-hov); }
+    .cal-detail-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface2); flex-wrap:wrap; gap:10px; }
+    .cal-detail-left { display:flex; flex-direction:column; gap:5px; }
+    .cal-detail-date { font-size:.95rem; font-weight:800; }
+    .cal-detail-date em { font-style:normal; color:var(--muted); font-size:.79rem; font-weight:400; margin-left:9px; }
+    .day-prog-row { display:flex; align-items:center; gap:10px; }
+    .day-prog-label { font-size:.69rem; color:var(--muted); white-space:nowrap; }
+    .day-prog-bar-bg { background:var(--border); height:6px; border-radius:3px; overflow:hidden; width:120px; }
+    .day-prog-bar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+    .day-prog-pct { font-size:.74rem; font-weight:800; min-width:32px; text-align:right; }
+    .cal-detail-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; padding:3px 7px; border-radius:5px; transition:color .15s, background .15s; align-self:flex-start; }
+    .cal-detail-close:hover { color:var(--urgent); background:rgba(var(--urgent-rgb),.08); }
+    .cal-detail-body { padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .cal-group-title { font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:2px; padding-left:6px; border-left:2px solid var(--border2); }
+    .cal-task-item { display:flex; align-items:flex-start; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; animation:slideIn .15s ease; transition:transform .15s, box-shadow .15s; }
+    .cal-task-item:hover:not(.done-today) { transform:translateY(-1px); box-shadow:0 3px 10px rgba(15,23,42,.1); }
+    .cal-task-item.done-today { opacity:.38; }
+    .cal-task-item.done-today .cal-task-name { text-decoration:line-through; color:var(--done); }
+    .cal-task-item .task-check { width:17px; height:17px; margin-top:2px; }
+    .cal-task-item.done-today .task-check { background:var(--done); border-color:var(--done); }
+    .cal-task-name { flex:1; font-size:.84rem; line-height:1.35; word-break:break-word; }
+    .cal-detail-empty { text-align:center; color:var(--muted); font-size:.82rem; padding:24px; border:1px dashed var(--border2); border-radius:11px; }
+
+    /* ── Archive ── */
+    .archive-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+    .archive-toolbar h3 { font-size:.81rem; color:var(--muted); font-weight:700; }
+    .btn-danger { background:rgba(var(--urgent-rgb),.07); border:1px solid rgba(var(--urgent-rgb),.22); color:var(--urgent); border-radius:9px; padding:7px 15px; font-size:.75rem; font-weight:700; cursor:pointer; transition:all .2s; }
+    .btn-danger:hover { background:rgba(var(--urgent-rgb),.14); box-shadow:0 2px 10px rgba(var(--urgent-rgb),.16); }
+    .archive-group { margin-bottom:20px; }
+    .archive-date-label { font-size:.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; padding-left:6px; border-left:2px solid var(--border2); }
+    .archive-list { display:flex; flex-direction:column; gap:6px; }
+    .archive-card { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:10px 13px; display:flex; align-items:flex-start; gap:10px; opacity:.6; box-shadow:var(--shadow-card); }
+    .archive-card .task-body { flex:1; min-width:0; }
+    .archive-card .task-text { font-size:.84rem; text-decoration:line-through; color:var(--done); word-break:break-word; }
+    .archive-icon { font-size:.88rem; flex-shrink:0; margin-top:1px; }
+    .archive-empty { text-align:center; color:var(--muted); font-size:.82rem; padding:40px 0; border:1px dashed var(--border2); border-radius:var(--radius); }
+
+    /* ════════════════════════════════════════
+       POMODORO / FOCUS TAB
+    ════════════════════════════════════════ */
+    .focus-wrap { display:flex; flex-direction:column; gap:20px; }
+
+    /* ── Mode Tabs ── */
+    .focus-mode-bar {
+      display:flex; gap:4px; background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:4px; box-shadow:var(--shadow-card);
+    }
+    .focus-mode-btn {
+      flex:1; padding:8px 10px; border-radius:9px; border:none;
+      background:none; color:var(--muted); font-size:.78rem; font-weight:700;
+      cursor:pointer; transition:all .2s; text-align:center;
+    }
+    .focus-mode-btn:hover { color:var(--text); background:rgba(15,23,42,.04); }
+    .focus-mode-btn.active {
+      background:linear-gradient(135deg,rgba(var(--accent-rgb),.12),rgba(var(--accent-rgb),.05));
+      color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .focus-mode-btn.active.mode-short { color:var(--habit); background:rgba(var(--habit-rgb),.1); }
+    .focus-mode-btn.active.mode-long  { color:var(--repeat); background:rgba(var(--repeat-rgb),.1); }
+
+    /* ── Timer Card ── */
+    .focus-timer-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:40px 30px; text-align:center;
+      box-shadow:var(--shadow-card); position:relative; overflow:hidden;
+    }
+    .focus-timer-card::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at 50% 30%,rgba(var(--accent-rgb),.05) 0%,transparent 70%);
+      pointer-events:none;
+    }
+
+    .focus-ring-container {
+      position:relative; width:220px; height:220px; margin:0 auto 24px;
+    }
+    .focus-ring-svg {
+      width:220px; height:220px; transform:rotate(-90deg);
+    }
+    .focus-ring-bg {
+      fill:none; stroke:var(--border); stroke-width:8;
+    }
+    .focus-ring-fill {
+      fill:none; stroke:var(--accent); stroke-width:8;
+      stroke-linecap:round;
+      stroke-dasharray:597; stroke-dashoffset:0;
+      transition:stroke-dashoffset 1s linear, stroke .3s;
+    }
+    .focus-ring-fill.mode-short { stroke:var(--habit); }
+    .focus-ring-fill.mode-long  { stroke:var(--repeat); }
+    .focus-ring-fill.complete   { stroke:var(--habit); }
+
+    .focus-time-display {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+    }
+    .focus-time-text {
+      font-size:3rem; font-weight:800; letter-spacing:-1px;
+      color:var(--text); line-height:1; font-variant-numeric:tabular-nums;
+    }
+    .focus-time-label {
+      font-size:.68rem; color:var(--muted); text-transform:uppercase;
+      letter-spacing:.8px; font-weight:700;
+    }
+
+    .focus-task-name-display {
+      font-size:1.05rem; font-weight:600; color:var(--text);
+      margin-bottom:20px; min-height:1.5em;
+    }
+    .focus-task-name-display em { font-style:normal; color:var(--muted); }
+
+    /* ── Pomodoro Dots ── */
+    .pomo-dots {
+      display:flex; justify-content:center; gap:8px; margin-bottom:20px;
+    }
+    .pomo-dot {
+      width:14px; height:14px; border-radius:50%;
+      border:2px solid var(--border2); transition:all .3s;
+      display:flex; align-items:center; justify-content:center;
+      font-size:.55rem;
+    }
+    .pomo-dot.filled {
+      background:var(--urgent); border-color:var(--urgent);
+      color:#fff;
+    }
+
+    /* ── Controls ── */
+    .focus-controls { display:flex; gap:10px; justify-content:center; margin-bottom:24px; }
+    .focus-ctrl-btn {
+      padding:10px 24px; border-radius:10px; border:none; cursor:pointer;
+      font-size:.85rem; font-weight:700; transition:all .18s; letter-spacing:.2px;
+    }
+    .focus-ctrl-btn:active { transform:scale(.96); }
+    .focus-ctrl-start {
+      background:linear-gradient(135deg,var(--accent),#6366f1); color:#fff;
+      box-shadow:0 2px 12px rgba(var(--accent-rgb),.35);
+    }
+    .focus-ctrl-start:hover {
+      box-shadow:0 4px 20px rgba(var(--accent-rgb),.5); transform:translateY(-1px);
+    }
+    .focus-ctrl-pause {
+      background:rgba(var(--important-rgb),.1); border:1px solid rgba(var(--important-rgb),.25);
+      color:var(--important);
+    }
+    .focus-ctrl-pause:hover { background:rgba(var(--important-rgb),.18); }
+    .focus-ctrl-stop {
+      background:rgba(var(--urgent-rgb),.08); border:1px solid rgba(var(--urgent-rgb),.22);
+      color:var(--urgent);
+    }
+    .focus-ctrl-stop:hover { background:rgba(var(--urgent-rgb),.16); }
+    .focus-ctrl-extra {
+      background:var(--surface2); border:1px solid var(--border);
+      color:var(--muted);
+    }
+    .focus-ctrl-extra:hover { background:rgba(var(--accent-rgb),.08); color:var(--accent); border-color:var(--accent); }
+
+    /* ── Task Picker ── */
+    .focus-task-picker {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:18px 20px;
+      box-shadow:var(--shadow-card);
+    }
+    .focus-picker-title {
+      font-size:.68rem; font-weight:800; text-transform:uppercase;
+      letter-spacing:1px; color:var(--muted); margin-bottom:12px;
+    }
+    .focus-task-list { display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
+    .focus-task-item {
+      display:flex; align-items:center; gap:10px; padding:10px 14px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-left:3px solid transparent; border-radius:10px;
+      cursor:pointer; transition:all .18s; font-size:.84rem;
+    }
+    .focus-task-item:hover {
+      border-color:rgba(var(--accent-rgb),.35); background:rgba(var(--accent-rgb),.04);
+      transform:translateY(-1px); box-shadow:var(--shadow-card-hov);
+    }
+    .focus-task-item.ft-habit  { border-left-color:var(--habit); }
+    .focus-task-item.ft-repeat { border-left-color:var(--repeat); }
+    .focus-task-item.ft-onetime{ border-left-color:var(--accent); }
+    .focus-task-item.ft-active {
+      border-color:var(--accent) !important; background:rgba(var(--accent-rgb),.08) !important;
+      box-shadow:0 0 0 2px rgba(var(--accent-rgb),.15);
+    }
+    .ft-name { flex:1; font-weight:600; }
+    .ft-cat-badge {
+      font-size:.6rem; font-weight:700; padding:2px 8px; border-radius:20px;
+      text-transform:uppercase; letter-spacing:.3px;
+    }
+    .ft-cat-habit  { background:rgba(var(--habit-rgb),.1); color:var(--habit); }
+    .ft-cat-repeat { background:rgba(var(--repeat-rgb),.1); color:var(--repeat); }
+    .ft-cat-onetime{ background:rgba(var(--accent-rgb),.1); color:var(--accent); }
+    .focus-empty-picker {
+      text-align:center; color:var(--muted); font-size:.82rem; padding:24px;
+      border:1px dashed var(--border2); border-radius:11px;
+    }
+
+    /* ── Session Log ── */
+    .focus-log {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:18px 20px;
+      box-shadow:var(--shadow-card);
+    }
+    .focus-log-title {
+      font-size:.68rem; font-weight:800; text-transform:uppercase;
+      letter-spacing:1px; color:var(--muted); margin-bottom:12px;
+    }
+    .focus-log-list { display:flex; flex-direction:column; gap:6px; }
+    .focus-log-item {
+      display:flex; align-items:center; gap:10px; padding:8px 12px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:9px; font-size:.8rem;
+    }
+    .fl-icon { font-size:1rem; }
+    .fl-name { flex:1; font-weight:600; color:var(--text); }
+    .fl-time { font-size:.7rem; color:var(--muted); font-weight:600; }
+    .fl-duration { font-size:.68rem; color:var(--accent); font-weight:700;
+      background:rgba(var(--accent-rgb),.08); padding:2px 8px; border-radius:20px; }
+    .focus-log-empty {
+      text-align:center; color:var(--muted); font-size:.82rem; padding:20px;
+      border:1px dashed var(--border2); border-radius:11px;
+    }
+
+    /* ── Complete celebration ── */
+    @keyframes pulseGlow {
+      0%,100% { box-shadow:0 0 0 0 rgba(var(--habit-rgb),.3); }
+      50%     { box-shadow:0 0 30px 8px rgba(var(--habit-rgb),.15); }
+    }
+    .focus-timer-card.complete-glow { animation:pulseGlow 1.5s ease 3; }
+
+    /* ════════════════════════════════════════
+       ANALYTICS / REVIEW TAB
+    ════════════════════════════════════════ */
+    .analytics-wrap { display:flex; flex-direction:column; gap:20px; }
+
+    /* ── Range Toggle ── */
+    .analytics-range-bar {
+      display:flex; gap:4px; background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:4px; box-shadow:var(--shadow-card);
+    }
+    .analytics-range-btn {
+      flex:1; padding:8px 10px; border-radius:9px; border:none;
+      background:none; color:var(--muted); font-size:.78rem; font-weight:700;
+      cursor:pointer; transition:all .2s; text-align:center;
+    }
+    .analytics-range-btn:hover { color:var(--text); background:rgba(15,23,42,.04); }
+    .analytics-range-btn.active {
+      background:linear-gradient(135deg,rgba(var(--accent-rgb),.12),rgba(var(--accent-rgb),.05));
+      color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+    }
+
+    /* ── Summary Stats Row ── */
+    .analytics-summary {
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .a-stat {
+      flex:1; min-width:120px; background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:14px 16px; text-align:center;
+      box-shadow:var(--shadow-card); position:relative; overflow:hidden;
+    }
+    .a-stat::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0;
+    }
+    .a-stat .a-val { font-size:1.6rem; font-weight:800; line-height:1.2; }
+    .a-stat .a-lbl { font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-top:3px; }
+    .a-stat.a-avg .a-val  { color:var(--accent); }  .a-stat.a-avg::before  { background:var(--accent); }
+    .a-stat.a-best .a-val { color:var(--habit); }   .a-stat.a-best::before { background:var(--habit); }
+    .a-stat.a-worst .a-val{ color:var(--urgent); }  .a-stat.a-worst::before{ background:var(--urgent); }
+    .a-stat.a-streak .a-val{color:var(--streak); }  .a-stat.a-streak::before{background:var(--streak); }
+    .a-stat.a-total .a-val{ color:var(--repeat); }  .a-stat.a-total::before{ background:var(--repeat); }
+
+    /* ── Bar Chart ── */
+    .analytics-chart-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:22px 24px;
+      box-shadow:var(--shadow-card);
+    }
+    .analytics-chart-title {
+      font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px;
+      color:var(--muted); margin-bottom:18px; font-weight:700;
+      display:flex; align-items:center; gap:8px;
+    }
+    .chart-container {
+      display:flex; align-items:flex-end; gap:4px; height:180px;
+      padding-bottom:28px; position:relative;
+    }
+    /* horizontal grid lines */
+    .chart-grid {
+      position:absolute; inset:0; bottom:28px;
+      display:flex; flex-direction:column; justify-content:space-between;
+      pointer-events:none;
+    }
+    .chart-grid-line {
+      border-bottom:1px dashed var(--border); position:relative; height:0;
+    }
+    .chart-grid-label {
+      position:absolute; left:-4px; top:-8px; font-size:.56rem;
+      color:var(--muted); font-weight:700; transform:translateX(-100%);
+      padding-right:6px;
+    }
+
+    /* individual bar */
+    .chart-bar-wrap {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      height:100%; justify-content:flex-end; position:relative;
+      min-width:0;
+    }
+    .chart-bar {
+      width:100%; max-width:36px; min-width:6px; border-radius:6px 6px 2px 2px;
+      transition:height .4s cubic-bezier(.4,0,.2,1), background .3s;
+      position:relative; cursor:pointer;
+    }
+    .chart-bar:hover { filter:brightness(1.15); }
+    .chart-bar.bar-full  { background:linear-gradient(180deg, var(--habit), #34d399); }
+    .chart-bar.bar-high  { background:linear-gradient(180deg, var(--accent), #818cf8); }
+    .chart-bar.bar-mid   { background:linear-gradient(180deg, var(--important), #fbbf24); }
+    .chart-bar.bar-low   { background:linear-gradient(180deg, var(--urgent), #f87171); }
+    .chart-bar.bar-zero  { background:var(--border); min-height:2px; }
+    .chart-bar.bar-today { box-shadow:0 0 0 2px var(--accent), 0 0 8px rgba(var(--accent-rgb),.25); }
+
+    /* bar tooltip on hover */
+    .chart-bar::after {
+      content:attr(data-tooltip);
+      position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+      background:var(--text); color:var(--surface); font-size:.62rem; font-weight:700;
+      padding:3px 8px; border-radius:6px; white-space:nowrap;
+      opacity:0; transition:opacity .15s; pointer-events:none;
+    }
+    .chart-bar:hover::after { opacity:1; }
+
+    .chart-bar-label {
+      font-size:.58rem; color:var(--muted); font-weight:700;
+      margin-top:6px; text-align:center; line-height:1.1;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      width:100%; max-width:40px;
+    }
+    .chart-bar-label.lbl-today { color:var(--accent); font-weight:800; }
+    .chart-bar-label.lbl-weekend { color:rgba(var(--urgent-rgb),.5); }
+
+    /* ── Category Breakdown ── */
+    .analytics-breakdown {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:22px 24px;
+      box-shadow:var(--shadow-card);
+    }
+    .breakdown-title {
+      font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px;
+      color:var(--muted); margin-bottom:14px; font-weight:700;
+    }
+    .breakdown-rows { display:flex; flex-direction:column; gap:10px; }
+    .breakdown-row {
+      display:flex; align-items:center; gap:12px;
+    }
+    .bd-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .bd-label { font-size:.8rem; font-weight:700; color:var(--text); min-width:90px; }
+    .bd-bar-bg {
+      flex:1; height:8px; border-radius:4px; background:var(--surface2);
+      border:1px solid var(--border); overflow:hidden;
+    }
+    .bd-bar-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+    .bd-pct { font-size:.72rem; font-weight:800; min-width:36px; text-align:right; }
+    .bd-count { font-size:.64rem; color:var(--muted); min-width:50px; }
+
+    /* ════════════════════════════════════════
+       CALENDAR SYNC / INTEGRATION
+    ════════════════════════════════════════ */
+    .sync-wrap { display:flex; flex-direction:column; gap:20px; }
+
+    /* ── Provider Cards ── */
+    .sync-provider-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media(max-width:640px) { .sync-provider-cards { grid-template-columns:1fr; } }
+
+    .sync-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:24px; text-align:center;
+      box-shadow:var(--shadow-card); transition:all .18s;
+      position:relative; overflow:hidden;
+    }
+    .sync-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:14px 14px 0 0;
+    }
+    .sync-card:hover { box-shadow:var(--shadow-card-hov); transform:translateY(-2px); }
+    .sync-card.sc-google::before  { background:linear-gradient(90deg,#4285f4,#34a853,#fbbc05,#ea4335); }
+    .sync-card.sc-outlook::before { background:linear-gradient(90deg,#0078d4,#28a8ea); }
+
+    .sync-card-icon { font-size:2.4rem; margin-bottom:12px; }
+    .sync-card-title { font-size:1.05rem; font-weight:800; color:var(--text); margin-bottom:4px; }
+    .sync-card-sub { font-size:.74rem; color:var(--muted); margin-bottom:18px; line-height:1.4; }
+
+    .sync-card-actions { display:flex; flex-direction:column; gap:8px; }
+    .sync-btn {
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 18px; border-radius:10px; border:none; cursor:pointer;
+      font-size:.82rem; font-weight:700; transition:all .18s; text-decoration:none;
+    }
+    .sync-btn:active { transform:scale(.96); }
+
+    .sync-btn-google {
+      background:#4285f4; color:#fff;
+      box-shadow:0 2px 8px rgba(66,133,244,.3);
+    }
+    .sync-btn-google:hover { box-shadow:0 4px 16px rgba(66,133,244,.45); transform:translateY(-1px); }
+
+    .sync-btn-outlook {
+      background:#0078d4; color:#fff;
+      box-shadow:0 2px 8px rgba(0,120,212,.3);
+    }
+    .sync-btn-outlook:hover { box-shadow:0 4px 16px rgba(0,120,212,.45); transform:translateY(-1px); }
+
+    .sync-btn-ics {
+      background:var(--surface2); border:1px solid var(--border2); color:var(--text);
+    }
+    .sync-btn-ics:hover { border-color:var(--accent); color:var(--accent); background:rgba(var(--accent-rgb),.04); }
+
+    .sync-btn-icon { font-size:1rem; }
+
+    /* ── Task Selector ── */
+    .sync-selector {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 22px;
+      box-shadow:var(--shadow-card);
+    }
+    .sync-sel-title {
+      font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px;
+      color:var(--muted); margin-bottom:14px; font-weight:700;
+    }
+    .sync-sel-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .sync-sel-btn {
+      padding:5px 12px; border-radius:8px; border:1px solid var(--border);
+      background:var(--surface2); color:var(--muted); font-size:.7rem;
+      font-weight:700; cursor:pointer; transition:all .18s;
+    }
+    .sync-sel-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .sync-sel-btn.active { background:rgba(var(--accent-rgb),.1); border-color:var(--accent); color:var(--accent); }
+
+    .sync-task-list { display:flex; flex-direction:column; gap:5px; max-height:300px; overflow-y:auto; }
+    .sync-task-item {
+      display:flex; align-items:center; gap:10px; padding:8px 12px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-left:3px solid transparent; border-radius:8px;
+      font-size:.82rem; transition:all .15s;
+    }
+    .sync-task-item:hover { background:rgba(var(--accent-rgb),.03); }
+    .sync-task-item.st-habit  { border-left-color:var(--habit); }
+    .sync-task-item.st-repeat { border-left-color:var(--repeat); }
+    .sync-task-item.st-onetime{ border-left-color:var(--accent); }
+
+    .sync-cb {
+      width:16px; height:16px; border-radius:4px; border:2px solid var(--border2);
+      flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      transition:all .15s; cursor:pointer;
+    }
+    .sync-cb.checked { background:var(--accent); border-color:var(--accent); }
+    .sync-cb svg { display:none; }
+    .sync-cb.checked svg { display:block; }
+    .sync-task-name { flex:1; font-weight:600; }
+    .sync-task-meta { font-size:.62rem; color:var(--muted); }
+
+    /* ── Bulk Export ── */
+    .sync-bulk-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 22px;
+      box-shadow:var(--shadow-card);
+    }
+    .sync-bulk-title {
+      font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px;
+      color:var(--muted); margin-bottom:6px; font-weight:700;
+    }
+    .sync-bulk-sub { font-size:.76rem; color:var(--muted); margin-bottom:14px; }
+    .sync-bulk-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .sync-bulk-btn {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 20px; border-radius:10px; border:none; cursor:pointer;
+      font-size:.82rem; font-weight:700; transition:all .18s;
+    }
+    .sync-bulk-btn:active { transform:scale(.96); }
+    .sync-bulk-btn.sb-google { background:#4285f4; color:#fff; box-shadow:0 2px 8px rgba(66,133,244,.25); }
+    .sync-bulk-btn.sb-google:hover { box-shadow:0 4px 14px rgba(66,133,244,.4); }
+    .sync-bulk-btn.sb-outlook { background:#0078d4; color:#fff; box-shadow:0 2px 8px rgba(0,120,212,.25); }
+    .sync-bulk-btn.sb-outlook:hover { box-shadow:0 4px 14px rgba(0,120,212,.4); }
+    .sync-bulk-btn.sb-ics { background:linear-gradient(135deg,var(--accent),#6366f1); color:#fff; box-shadow:0 2px 8px rgba(var(--accent-rgb),.3); }
+    .sync-bulk-btn.sb-ics:hover { box-shadow:0 4px 14px rgba(var(--accent-rgb),.45); }
+
+    /* ── Info Box ── */
+    .sync-info {
+      background:rgba(var(--accent-rgb),.04); border:1px solid rgba(var(--accent-rgb),.15);
+      border-radius:11px; padding:14px 18px; font-size:.76rem; color:var(--muted); line-height:1.6;
+    }
+    .sync-info strong { color:var(--text); }
+    .sync-info code { background:var(--surface2); padding:1px 5px; border-radius:4px; font-size:.72rem; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+
+    @media (max-width:520px) {
+      .cal-cell { min-height:54px; padding:5px 5px 2px; }
+      .cal-dot  { width:5px; height:5px; }
+      .prog-strips { flex-direction:column; }
+      .prog-strip { border-right:none; border-bottom:1px solid var(--border); }
+      .prog-strip:last-child { border-bottom:none; }
+      .quote-body { flex-direction:column; gap:6px; }
+      .quote-mark { font-size:2.2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>Todo <span>V 1.22</span></h1>
+    <p>Habits · Recurring · One-Time · Eisenhower Matrix · Calendar · Per-Day Progress · Daily Quote</p>
+  </header>
+
+  <!-- ══ Daily Quote Card ══ -->
+  <div class="quote-card">
+    <div class="quote-top">
+      <div class="quote-label">
+        <div class="quote-label-dot"></div>
+        Quote of the Day
+      </div>
+      <div class="quote-day-badge" id="quote-day-badge">Day 1</div>
+    </div>
+    <div class="quote-body">
+      <div class="quote-mark">&#8220;</div>
+      <div class="quote-content" id="quote-content">
+        <div class="quote-text" id="quote-text"></div>
+        <div class="quote-author">
+          <span id="quote-author"></span>
+        </div>
+      </div>
+    </div>
+    <div class="quote-footer">
+      <div class="quote-nav">
+        <button class="quote-nav-btn" onclick="browseQuote(-1)">&#8592; Prev</button>
+        <button class="quote-nav-btn" onclick="browseQuote(1)">Next &#8594;</button>
+      </div>
+      <div class="quote-counter" id="quote-counter">1 / 100</div>
+      <button class="quote-today-btn" onclick="jumpToToday()">&#9737; Today's Quote</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat s-habit">    <span class="num" id="st-habits">0</span>    <span class="lbl">Habits</span>     </div>
+    <div class="stat s-repeat">   <span class="num" id="st-repeat">0</span>    <span class="lbl">Recurring</span>  </div>
+    <div class="stat s-urgent">   <span class="num" id="st-urgent">0</span>    <span class="lbl">Urgent</span>     </div>
+    <div class="stat s-important"><span class="num" id="st-important">0</span> <span class="lbl">Important</span>  </div>
+    <div class="stat s-overdue">  <span class="num" id="st-overdue">0</span>   <span class="lbl">Overdue</span>   </div>
+    <div class="stat s-done">     <span class="num" id="st-done">0</span>      <span class="lbl">Done Today</span></div>
+    <div class="stat s-archive">  <span class="num" id="st-archive">0</span>  <span class="lbl">Archived</span>  </div>
+  </div>
+
+  <!-- Progress Panel -->
+  <div class="progress-panel">
+    <div class="prog-strips">
+      <div class="prog-strip">
+        <span class="ps-label">Recurring Today</span>
+        <div class="ps-bar-bg"><div class="ps-bar-fill" id="ps-recur-fill" style="width:0%;background:var(--habit)"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="ps-count" id="ps-recur-count">0 / 0</span>
+          <span class="ps-pct"  id="ps-recur-pct">0%</span>
+        </div>
+      </div>
+      <div class="prog-strip">
+        <span class="ps-label">One-Time Tasks</span>
+        <div class="ps-bar-bg"><div class="ps-bar-fill" id="ps-onetime-fill" style="width:0%;background:var(--accent)"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="ps-count" id="ps-onetime-count">0 / 0</span>
+          <span class="ps-pct"  id="ps-onetime-pct">0%</span>
+        </div>
+      </div>
+      <div class="prog-strip">
+        <span class="ps-label">Overdue</span>
+        <div class="ps-bar-bg"><div class="ps-bar-fill" id="ps-overdue-fill" style="width:0%;background:var(--overdue)"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="ps-count" id="ps-overdue-count">0 / 0</span>
+          <span class="ps-pct"  id="ps-overdue-pct">0%</span>
+        </div>
+      </div>
+    </div>
+    <div class="prog-main">
+      <div class="prog-top">
+        <div class="prog-title">
+          <strong id="prog-pct">0%</strong>
+          of today's tasks complete
+          <span class="prog-date" id="prog-date"></span>
+        </div>
+        <!-- auto-archive on completion -->
+      </div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-note" id="prog-note"></div>
+    </div>
+  </div>
+
+  <!-- Add Panel -->
+  <div class="add-panel">
+    <h2>+ New Task</h2>
+    <div class="form-row">
+      <div class="form-group" style="flex:2;min-width:180px">
+        <label>Task Name</label>
+        <input type="text" id="inp-name" placeholder="What needs to be done?" />
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="inp-cat" onchange="onCatChange()">
+          <option value="">-- Select --</option>
+          <option value="habit">Habit</option>
+          <option value="repeat">Recurring Task</option>
+          <option value="onetime">One-Time Task</option>
+        </select>
+      </div>
+      <div class="form-group freq-field" id="freq-wrap">
+        <label>Frequency</label>
+        <select id="inp-freq">
+          <option value="daily">Daily</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekends">Weekends</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="form-group freq-field" id="custom-freq-wrap" style="display:none!important">
+        <label>Custom Frequency</label>
+        <input type="text" id="inp-custom-freq" placeholder="e.g. Every Mon & Thu" />
+      </div>
+      <div class="form-group onetime-fields" id="onetime-wrap">
+        <label>Eisenhower Priority</label>
+        <select id="inp-priority">
+          <option value="both">Urgent + Important (Do First)</option>
+          <option value="important">Important, Not Urgent (Schedule)</option>
+          <option value="urgent">Urgent, Not Important (Delegate)</option>
+          <option value="none">Neither (Eliminate)</option>
+        </select>
+      </div>
+      <div class="form-group onetime-fields" id="deadline-wrap">
+        <label>Deadline</label>
+        <input type="date" id="inp-deadline" />
+      </div>
+      <div class="form-group" style="flex:0">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="addTask()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-tasks-btn"    onclick="switchTab('tasks')">    Tasks             <span class="tab-badge" id="tb-tasks">0</span></button>
+    <button class="tab-btn"        id="tab-matrix-btn"   onclick="switchTab('matrix')">   Eisenhower Matrix  <span class="tab-badge" id="tb-matrix">0</span></button>
+    <button class="tab-btn"        id="tab-calendar-btn" onclick="switchTab('calendar')"> Calendar           <span class="tab-badge" id="tb-calendar">0</span></button>
+    <button class="tab-btn"        id="tab-focus-btn"    onclick="switchTab('focus')">    Focus Timer        <span class="tab-badge" id="tb-focus">0</span></button>
+    <button class="tab-btn"        id="tab-analytics-btn" onclick="switchTab('analytics')"> Analytics          <span class="tab-badge" id="tb-analytics">📊</span></button>
+    <button class="tab-btn"        id="tab-sync-btn"      onclick="switchTab('sync')">      Cal Sync           <span class="tab-badge" id="tb-sync">🔗</span></button>
+    <button class="tab-btn"        id="tab-archive-btn"  onclick="switchTab('archive')">  Archive            <span class="tab-badge" id="tb-archive">0</span></button>
+  </div>
+
+  <!-- Tasks -->
+  <div class="tab-panel active" id="panel-tasks">
+    <div class="columns">
+      <div class="col col-habits">
+        <div class="col-header"><span class="dot"></span> Habits <span class="count" id="cnt-habits">0</span></div>
+        <div id="list-habits"></div>
+      </div>
+      <div class="col col-repeat">
+        <div class="col-header"><span class="dot"></span> Recurring Tasks <span class="count" id="cnt-repeat">0</span></div>
+        <div id="list-repeat"></div>
+      </div>
+      <div class="col col-onetime">
+        <div class="col-header"><span class="dot"></span> One-Time Tasks <span class="count" id="cnt-onetime">0</span></div>
+        <div id="list-onetime"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Matrix -->
+  <div class="tab-panel" id="panel-matrix">
+    <p class="matrix-intro"><strong>Eisenhower Decision Matrix</strong> &mdash; One-time tasks only.</p>
+    <div class="matrix-axis-labels">
+      <div></div>
+      <div class="axis-col-label urgent-col">⚡ Urgent</div>
+      <div class="axis-col-label" style="color:var(--muted)">Not Urgent</div>
+      <div class="axis-row-label important-row">★ Important</div>
+      <div class="matrix-quadrant q1">
+        <div class="q-header"><span class="q-icon">🔥</span><span class="q-title">Do First</span><span class="q-count" id="qcnt-1">0</span><span class="q-sub">Urgent + Important</span></div>
+        <div id="q1-list"></div>
+      </div>
+      <div class="matrix-quadrant q2">
+        <div class="q-header"><span class="q-icon">📅</span><span class="q-title">Schedule</span><span class="q-count" id="qcnt-2">0</span><span class="q-sub">Important, Not Urgent</span></div>
+        <div id="q2-list"></div>
+      </div>
+      <div class="axis-row-label" style="color:var(--muted)">Not Important</div>
+      <div class="matrix-quadrant q3">
+        <div class="q-header"><span class="q-icon">🤝</span><span class="q-title">Delegate</span><span class="q-count" id="qcnt-3">0</span><span class="q-sub">Urgent, Not Important</span></div>
+        <div id="q3-list"></div>
+      </div>
+      <div class="matrix-quadrant q4">
+        <div class="q-header"><span class="q-icon">🗑️</span><span class="q-title">Eliminate</span><span class="q-count" id="qcnt-4">0</span><span class="q-sub">Neither</span></div>
+        <div id="q4-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="tab-panel" id="panel-calendar">
+    <div class="cal-wrap">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
+        <div class="cal-nav-title" id="cal-title"></div>
+        <button class="btn-today" onclick="calToday()">Today</button>
+        <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
+      </div>
+      <div class="cal-legend">
+        <strong>Legend:</strong>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--habit)"></div> Habit</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--repeat)"></div> Recurring</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--urgent)"></div> Urgent</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--important)"></div> Important</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--accent2)"></div> Both</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--muted);opacity:.4"></div> Completed</div>
+        <div class="leg-item" style="gap:4px"><div style="width:22px;height:3px;border-radius:2px;background:var(--habit)"></div> 100%</div>
+        <div class="leg-item" style="gap:4px"><div style="width:22px;height:3px;border-radius:2px;background:var(--important)"></div> 50%+</div>
+        <div class="leg-item" style="gap:4px"><div style="width:22px;height:3px;border-radius:2px;background:var(--accent)"></div> &lt;50%</div>
+      </div>
+      <div class="cal-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div id="cal-detail-panel"></div>
+    </div>
+  </div>
+
+  <!-- Focus / Pomodoro -->
+  <div class="tab-panel" id="panel-focus">
+    <div class="focus-wrap">
+
+      <!-- Mode Bar -->
+      <div class="focus-mode-bar">
+        <button class="focus-mode-btn active" id="fmode-focus" onclick="setFocusMode('focus')">Focus — 25 min</button>
+        <button class="focus-mode-btn mode-short" id="fmode-short" onclick="setFocusMode('short')">Short Break — 5 min</button>
+        <button class="focus-mode-btn mode-long" id="fmode-long" onclick="setFocusMode('long')">Long Break — 15 min</button>
+      </div>
+
+      <!-- Timer Card -->
+      <div class="focus-timer-card" id="focus-timer-card">
+        <div class="focus-task-name-display" id="focus-task-display"><em>Select a task below to focus on</em></div>
+
+        <div class="focus-ring-container">
+          <svg class="focus-ring-svg" viewBox="0 0 200 200">
+            <circle class="focus-ring-bg" cx="100" cy="100" r="95"/>
+            <circle class="focus-ring-fill" id="focus-ring" cx="100" cy="100" r="95"/>
+          </svg>
+          <div class="focus-time-display">
+            <div class="focus-time-text" id="focus-time">25:00</div>
+            <div class="focus-time-label" id="focus-label">READY</div>
+          </div>
+        </div>
+
+        <!-- Pomodoro Dots -->
+        <div class="pomo-dots" id="pomo-dots">
+          <div class="pomo-dot"></div><div class="pomo-dot"></div>
+          <div class="pomo-dot"></div><div class="pomo-dot"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="focus-controls" id="focus-controls">
+          <button class="focus-ctrl-btn focus-ctrl-start" id="fc-start" onclick="startFocus()">Start Focus</button>
+        </div>
+      </div>
+
+      <!-- Task Picker -->
+      <div class="focus-task-picker">
+        <div class="focus-picker-title">Pick a task to focus on</div>
+        <div class="focus-task-list" id="focus-task-list"></div>
+      </div>
+
+      <!-- Session Log -->
+      <div class="focus-log">
+        <div class="focus-log-title">Today's Focus Sessions</div>
+        <div class="focus-log-list" id="focus-log-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Analytics -->
+  <div class="tab-panel" id="panel-analytics">
+    <div class="analytics-wrap">
+
+      <!-- Range Toggle -->
+      <div class="analytics-range-bar">
+        <button class="analytics-range-btn active" id="ar-7" onclick="setAnalyticsRange(7)">Last 7 Days</button>
+        <button class="analytics-range-btn" id="ar-14" onclick="setAnalyticsRange(14)">Last 14 Days</button>
+        <button class="analytics-range-btn" id="ar-30" onclick="setAnalyticsRange(30)">Last 30 Days</button>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="analytics-summary" id="analytics-summary"></div>
+
+      <!-- Bar Chart -->
+      <div class="analytics-chart-card">
+        <div class="analytics-chart-title">📊 Daily Completion Rate</div>
+        <div style="display:flex">
+          <div style="width:32px;display:flex;flex-direction:column;justify-content:space-between;padding-bottom:28px">
+            <span style="font-size:.56rem;color:var(--muted);font-weight:700">100%</span>
+            <span style="font-size:.56rem;color:var(--muted);font-weight:700">75%</span>
+            <span style="font-size:.56rem;color:var(--muted);font-weight:700">50%</span>
+            <span style="font-size:.56rem;color:var(--muted);font-weight:700">25%</span>
+            <span style="font-size:.56rem;color:var(--muted);font-weight:700">0%</span>
+          </div>
+          <div style="flex:1;position:relative">
+            <div class="chart-grid">
+              <div class="chart-grid-line"></div>
+              <div class="chart-grid-line"></div>
+              <div class="chart-grid-line"></div>
+              <div class="chart-grid-line"></div>
+              <div class="chart-grid-line"></div>
+            </div>
+            <div class="chart-container" id="analytics-chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Breakdown -->
+      <div class="analytics-breakdown">
+        <div class="breakdown-title">Category Breakdown (Period Total)</div>
+        <div class="breakdown-rows" id="analytics-breakdown"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Calendar Sync -->
+  <div class="tab-panel" id="panel-sync">
+    <div class="sync-wrap">
+
+      <!-- Provider Cards -->
+      <div class="sync-provider-cards">
+        <div class="sync-card sc-google">
+          <div class="sync-card-icon">📅</div>
+          <div class="sync-card-title">Google Calendar</div>
+          <div class="sync-card-sub">Add tasks as events in your Google Calendar. Opens in a new tab.</div>
+          <div class="sync-card-actions">
+            <button class="sync-btn sync-btn-google" onclick="exportSelectedGoogle()"><span class="sync-btn-icon">🚀</span> Add Selected to Google</button>
+            <button class="sync-btn sync-btn-ics" onclick="downloadICS('google')"><span class="sync-btn-icon">📄</span> Download .ics File</button>
+          </div>
+        </div>
+        <div class="sync-card sc-outlook">
+          <div class="sync-card-icon">📧</div>
+          <div class="sync-card-title">Microsoft Outlook</div>
+          <div class="sync-card-sub">Add tasks as events in Outlook / Microsoft 365 Calendar.</div>
+          <div class="sync-card-actions">
+            <button class="sync-btn sync-btn-outlook" onclick="exportSelectedOutlook()"><span class="sync-btn-icon">🚀</span> Add Selected to Outlook</button>
+            <button class="sync-btn sync-btn-ics" onclick="downloadICS('outlook')"><span class="sync-btn-icon">📄</span> Download .ics File</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Selector -->
+      <div class="sync-selector">
+        <div class="sync-sel-title">Select Tasks to Export</div>
+        <div class="sync-sel-actions" id="sync-sel-actions"></div>
+        <div class="sync-task-list" id="sync-task-list"></div>
+      </div>
+
+      <!-- Bulk Export -->
+      <div class="sync-bulk-card">
+        <div class="sync-bulk-title">Bulk Export All Tasks</div>
+        <div class="sync-bulk-sub">Download a single .ics file containing all your tasks. Import into any calendar app.</div>
+        <div class="sync-bulk-actions">
+          <button class="sync-bulk-btn sb-ics" onclick="downloadICSAll()"><span class="sync-btn-icon">📄</span> Download All as .ics</button>
+          <button class="sync-bulk-btn sb-google" onclick="exportAllGoogle()"><span class="sync-btn-icon">📅</span> Open All in Google</button>
+          <button class="sync-bulk-btn sb-outlook" onclick="exportAllOutlook()"><span class="sync-btn-icon">📧</span> Open All in Outlook</button>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="sync-info">
+        <strong>How it works:</strong><br>
+        • <strong>Google Calendar</strong> — Opens each task as a pre-filled event in Google Calendar. Click "Save" in Google to add it.<br>
+        • <strong>Outlook</strong> — Opens each task in Outlook Web. Click "Save" to add it.<br>
+        • <strong>.ics File</strong> — Downloads a standard <code>.ics</code> calendar file. Import it into Google Calendar, Outlook, Apple Calendar, or any app that supports iCalendar.<br>
+        • Recurring tasks generate events with proper recurrence rules (RRULE).<br>
+        • One-time tasks with deadlines become events on the deadline date.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Archive -->
+  <div class="tab-panel" id="panel-archive">
+    <div class="archive-toolbar">
+      <h3>Completed &amp; Archived One-Time Tasks</h3>
+      <button class="btn-danger" onclick="clearArchive()">Clear Archive</button>
+    </div>
+    <div id="archive-list-container"></div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  QUOTES  — 100 curated quotes, rotate by day of year
+// ══════════════════════════════════════════════════════
+const QUOTES = [
+  // ── Jan 1–31 ──
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+  { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+  { text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "I find that the harder I work, the more luck I seem to have.", author: "Thomas Jefferson" },
+  { text: "Don't be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
+  { text: "All our dreams can come true, if we have the courage to pursue them.", author: "Walt Disney" },
+  { text: "The road to success and the road to failure are almost exactly the same.", author: "Colin R. Davis" },
+  { text: "I never dreamed about success. I worked for it.", author: "Estee Lauder" },
+  { text: "Success is walking from failure to failure with no loss of enthusiasm.", author: "Winston Churchill" },
+  { text: "Just one small positive thought in the morning can change your whole day.", author: "Dalai Lama" },
+  { text: "Opportunities don't happen. You create them.", author: "Chris Grosser" },
+  { text: "Don't let yesterday take up too much of today.", author: "Will Rogers" },
+  { text: "You learn more from failure than from success. Don't let it stop you.", author: "Unknown" },
+  { text: "We generate fears while we sit. We overcome them by action.", author: "Dr. Henry Link" },
+  { text: "Whether you think you can or think you can't, you're right.", author: "Henry Ford" },
+  { text: "Life is either a daring adventure or nothing at all.", author: "Helen Keller" },
+  { text: "The man who has confidence in himself gains the confidence of others.", author: "Hasidic Proverb" },
+  { text: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
+  { text: "Creativity is intelligence having fun.", author: "Albert Einstein" },
+  { text: "Do one thing every day that scares you.", author: "Eleanor Roosevelt" },
+  { text: "What you get by achieving your goals is not as important as what you become.", author: "Zig Ziglar" },
+  { text: "When you have a dream, you've got to grab it and never let go.", author: "Carol Burnett" },
+  { text: "Nothing is impossible. The word itself says I'm possible.", author: "Audrey Hepburn" },
+  { text: "There is nothing impossible to they who will try.", author: "Alexander the Great" },
+  // ── Feb 1–28 ──
+  { text: "The bad news is time flies. The good news is you're the pilot.", author: "Michael Altshuler" },
+  { text: "Keep your eyes on the stars, and your feet on the ground.", author: "Theodore Roosevelt" },
+  { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
+  { text: "Whoever is happy will make others happy too.", author: "Anne Frank" },
+  { text: "If life were predictable it would cease to be life, and be without flavor.", author: "Eleanor Roosevelt" },
+  { text: "In the end, it's not the years in your life that count. It's the life in your years.", author: "Abraham Lincoln" },
+  { text: "When you reach the end of your rope, tie a knot in it and hang on.", author: "Franklin D. Roosevelt" },
+  { text: "Always remember that you are absolutely unique. Just like everyone else.", author: "Margaret Mead" },
+  { text: "Go where there is no path and leave a trail.", author: "Ralph Waldo Emerson" },
+  { text: "You will face many defeats in life, but never let yourself be defeated.", author: "Maya Angelou" },
+  { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Nelson Mandela" },
+  { text: "Spread love everywhere you go.", author: "Mother Teresa" },
+  { text: "When you arise in the morning, think of what a privilege it is to be alive.", author: "Marcus Aurelius" },
+  { text: "If you look at what you have in life, you'll always have more.", author: "Oprah Winfrey" },
+  { text: "I can't change the direction of the wind, but I can adjust my sails.", author: "Jimmy Dean" },
+  { text: "No one can make you feel inferior without your consent.", author: "Eleanor Roosevelt" },
+  { text: "A person who never made a mistake never tried anything new.", author: "Albert Einstein" },
+  { text: "The question isn't who is going to let me; it's who is going to stop me.", author: "Ayn Rand" },
+  { text: "The only person you are destined to become is the person you decide to be.", author: "Ralph Waldo Emerson" },
+  { text: "You miss 100% of the shots you don't take.", author: "Wayne Gretzky" },
+  { text: "I have not failed. I've just found 10,000 ways that won't work.", author: "Thomas Edison" },
+  { text: "Tie your life to a goal, not to people or things.", author: "Albert Einstein" },
+  { text: "Never let the fear of striking out keep you from playing the game.", author: "Babe Ruth" },
+  { text: "Your time is limited, so don't waste it living someone else's life.", author: "Steve Jobs" },
+  { text: "Not how long, but how well you have lived is the main thing.", author: "Seneca" },
+  { text: "You only live once, but if you do it right, once is enough.", author: "Mae West" },
+  { text: "Live in the sunshine, swim the sea, drink the wild air.", author: "Ralph Waldo Emerson" },
+  { text: "Be yourself; everyone else is already taken.", author: "Oscar Wilde" },
+  { text: "Twenty years from now you will be more disappointed by the things you didn't do.", author: "Mark Twain" },
+  // ── Mar 1–31 ──
+  { text: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+  { text: "Motivation is what gets you started. Habit is what keeps you going.", author: "Jim Ryun" },
+  { text: "We must believe that we are gifted for something.", author: "Marie Curie" },
+  { text: "Too many of us are not living our dreams because we are living our fears.", author: "Les Brown" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "The most certain way to succeed is always to try just one more time.", author: "Thomas Edison" },
+  { text: "You are never too old to set another goal or to dream a new dream.", author: "Malala Yousafzai" },
+  { text: "To see what is right and not do it is a lack of courage.", author: "Confucius" },
+  { text: "We know what we are, but know not what we may be.", author: "William Shakespeare" },
+  { text: "Dream big and dare to fail.", author: "Norman Vaughan" },
+  { text: "A winner is a dreamer who never gives up.", author: "Nelson Mandela" },
+  { text: "Challenges are what make life interesting. Overcoming them is what makes life meaningful.", author: "Joshua J. Marine" },
+  { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "C.S. Lewis" },
+  { text: "Small daily improvements are the key to staggering long-term results.", author: "Robin Sharma" },
+  { text: "Fall seven times, stand up eight.", author: "Japanese Proverb" },
+  { text: "Everything you can imagine is real.", author: "Pablo Picasso" },
+  { text: "You don't need to see the whole staircase, just take the first step.", author: "Martin Luther King Jr." },
+  { text: "With the new day comes new strength and new thoughts.", author: "Eleanor Roosevelt" },
+  { text: "Problems are not stop signs, they are guidelines.", author: "Robert H. Schuller" },
+  { text: "One today is worth two tomorrows.", author: "Benjamin Franklin" },
+  { text: "I am not a product of my circumstances. I am a product of my decisions.", author: "Stephen Covey" },
+  { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { text: "An unexamined life is not worth living.", author: "Socrates" },
+  { text: "The purpose of our lives is to be happy.", author: "Dalai Lama" },
+  { text: "Life itself is the most wonderful fairy tale.", author: "Hans Christian Andersen" },
+  { text: "Excellence is not a destination; it is a continuous journey that never ends.", author: "Brian Tracy" },
+  { text: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+  { text: "Happiness is not something ready-made. It comes from your own actions.", author: "Dalai Lama" },
+  { text: "Well done is better than well said.", author: "Benjamin Franklin" },
+  { text: "The mind is everything. What you think you become.", author: "Buddha" },
+  { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
+  { text: "What lies behind us and what lies before us are tiny matters compared to what lies within us.", author: "Ralph Waldo Emerson" },
+  // ── Apr 1–30 ──
+  { text: "Every moment is a fresh beginning.", author: "T.S. Eliot" },
+  { text: "The best revenge is massive success.", author: "Frank Sinatra" },
+  { text: "Change your thoughts and you change your world.", author: "Norman Vincent Peale" },
+  { text: "Life is what happens when you're busy making other plans.", author: "John Lennon" },
+  { text: "If opportunity doesn't knock, build a door.", author: "Milton Berle" },
+  { text: "The best way to predict the future is to create it.", author: "Peter Drucker" },
+  { text: "Everything has beauty, but not everyone sees it.", author: "Confucius" },
+  { text: "Try not to become a man of success. Rather become a man of value.", author: "Albert Einstein" },
+  { text: "It is never too late to be what you might have been.", author: "George Eliot" },
+  { text: "Strive not to be a success, but rather to be of value.", author: "Albert Einstein" },
+  { text: "A champion is defined not by their wins but by how they recover when they fall.", author: "Serena Williams" },
+  { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+  { text: "What we achieve inwardly will change outer reality.", author: "Plutarch" },
+  { text: "Life shrinks or expands in proportion to one's courage.", author: "Anais Nin" },
+  { text: "Doubt kills more dreams than failure ever will.", author: "Suzy Kassem" },
+  { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+  { text: "Limit your always and your nevers.", author: "Amy Poehler" },
+  { text: "Only I can change my life. No one can do it for me.", author: "Carol Burnett" },
+  { text: "Positive anything is better than negative nothing.", author: "Elbert Hubbard" },
+  { text: "What would you attempt to do if you knew you could not fail?", author: "Robert Schuller" },
+  { text: "Knowledge is power.", author: "Francis Bacon" },
+  { text: "If you can dream it, you can do it.", author: "Walt Disney" },
+  { text: "Where there is a will, there is a way.", author: "Pauline Kael" },
+  { text: "Don't count the days, make the days count.", author: "Muhammad Ali" },
+  { text: "The power of imagination makes us infinite.", author: "John Muir" },
+  { text: "Perseverance is not a long race; it is many short races one after the other.", author: "Walter Elliot" },
+  { text: "We become what we think about most of the time.", author: "Earl Nightingale" },
+  { text: "Quality is not an act, it is a habit.", author: "Aristotle" },
+  { text: "Everything you've ever wanted is on the other side of fear.", author: "George Addair" },
+  { text: "What you do today can improve all your tomorrows.", author: "Ralph Marston" },
+  // ── May 1–31 ──
+  { text: "Don't wish it were easier. Wish you were better.", author: "Jim Rohn" },
+  { text: "The only real mistake is the one from which we learn nothing.", author: "Henry Ford" },
+  { text: "Great things never come from comfort zones.", author: "Unknown" },
+  { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+  { text: "He who is not courageous enough to take risks will accomplish nothing in life.", author: "Muhammad Ali" },
+  { text: "Don't stop when you're tired. Stop when you're done.", author: "Unknown" },
+  { text: "Discipline is the bridge between goals and accomplishment.", author: "Jim Rohn" },
+  { text: "The harder the conflict, the more glorious the triumph.", author: "Thomas Paine" },
+  { text: "If you want something you've never had, you must be willing to do something you've never done.", author: "Thomas Jefferson" },
+  { text: "The difference between ordinary and extraordinary is that little extra.", author: "Jimmy Johnson" },
+  { text: "Go confidently in the direction of your dreams.", author: "Henry David Thoreau" },
+  { text: "You are braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
+  { text: "Energy and persistence conquer all things.", author: "Benjamin Franklin" },
+  { text: "The only thing standing between you and your goal is the story you keep telling yourself.", author: "Jordan Belfort" },
+  { text: "Hustle in silence and let your success make the noise.", author: "Unknown" },
+  { text: "Be so good they can't ignore you.", author: "Steve Martin" },
+  { text: "Hard work beats talent when talent doesn't work hard.", author: "Tim Notke" },
+  { text: "Success doesn't come from what you do occasionally. It comes from what you do consistently.", author: "Marie Forleo" },
+  { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+  { text: "A goal without a plan is just a wish.", author: "Antoine de Saint-Exupery" },
+  { text: "There are no shortcuts to any place worth going.", author: "Beverly Sills" },
+  { text: "The greatest weapon against stress is our ability to choose one thought over another.", author: "William James" },
+  { text: "Your limitation — it's only your imagination.", author: "Unknown" },
+  { text: "Sometimes later becomes never. Do it now.", author: "Unknown" },
+  { text: "Great things are done by a series of small things brought together.", author: "Vincent Van Gogh" },
+  { text: "It's not about having time. It's about making time.", author: "Unknown" },
+  { text: "The pain you feel today will be the strength you feel tomorrow.", author: "Unknown" },
+  { text: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+  { text: "Wake up with determination. Go to bed with satisfaction.", author: "Unknown" },
+  { text: "Dream it. Wish it. Do it.", author: "Unknown" },
+  { text: "Stay foolish to stay sane.", author: "Maxime Lagace" },
+  // ── Jun 1–30 ──
+  { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+  { text: "Setting goals is the first step in turning the invisible into the visible.", author: "Tony Robbins" },
+  { text: "Life is 10% what happens to you and 90% how you react to it.", author: "Charles R. Swindoll" },
+  { text: "It's not whether you get knocked down, it's whether you get up.", author: "Vince Lombardi" },
+  { text: "Knowing is not enough; we must apply. Willing is not enough; we must do.", author: "Johann Wolfgang von Goethe" },
+  { text: "We may encounter many defeats but we must not be defeated.", author: "Maya Angelou" },
+  { text: "In order to be irreplaceable one must always be different.", author: "Coco Chanel" },
+  { text: "The best preparation for tomorrow is doing your best today.", author: "H. Jackson Brown Jr." },
+  { text: "It's hard to beat a person who never gives up.", author: "Babe Ruth" },
+  { text: "Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.", author: "Roy T. Bennett" },
+  { text: "Courage is resistance to fear, mastery of fear — not absence of fear.", author: "Mark Twain" },
+  { text: "The struggle you're in today is developing the strength you need for tomorrow.", author: "Robert Tew" },
+  { text: "You don't always need a plan. Sometimes you just need to breathe and trust.", author: "Mandy Hale" },
+  { text: "Let your hopes, not your hurts, shape your future.", author: "Robert H. Schuller" },
+  { text: "The more that you read, the more things you will know.", author: "Dr. Seuss" },
+  { text: "Success is liking yourself, liking what you do, and liking how you do it.", author: "Maya Angelou" },
+  { text: "Impossible is just an opinion.", author: "Paulo Coelho" },
+  { text: "Strength does not come from winning. It comes from struggles and hardship.", author: "Arnold Schwarzenegger" },
+  { text: "Our lives begin to end the day we become silent about things that matter.", author: "Martin Luther King Jr." },
+  { text: "It's always too early to quit.", author: "Norman Vincent Peale" },
+  { text: "If you're going through hell, keep going.", author: "Winston Churchill" },
+  { text: "The only way out is through.", author: "Robert Frost" },
+  { text: "Stay hungry, stay foolish.", author: "Steve Jobs" },
+  { text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+  { text: "A journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+  { text: "You do not find the happy life. You make it.", author: "Camilla Eyring Kimball" },
+  { text: "Be the change that you wish to see in the world.", author: "Mahatma Gandhi" },
+  { text: "Nothing great was ever achieved without enthusiasm.", author: "Ralph Waldo Emerson" },
+  { text: "Happiness depends upon ourselves.", author: "Aristotle" },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+  // ── Jul 1–31 ──
+  { text: "The best time of day is now.", author: "Habeeb Akande" },
+  { text: "What we think, we become.", author: "Buddha" },
+  { text: "You can, you should, and if you're brave enough to start, you will.", author: "Stephen King" },
+  { text: "Don't let what you cannot do interfere with what you can do.", author: "John Wooden" },
+  { text: "The world is full of magical things patiently waiting for our wits to grow sharper.", author: "Bertrand Russell" },
+  { text: "Failure is simply the opportunity to begin again, this time more intelligently.", author: "Henry Ford" },
+  { text: "The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.", author: "Winston Churchill" },
+  { text: "Nothing in the world can take the place of persistence.", author: "Calvin Coolidge" },
+  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
+  { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci" },
+  { text: "What we fear doing most is usually what we most need to do.", author: "Tim Ferriss" },
+  { text: "The first step toward success is taken when you refuse to be a captive of the environment.", author: "Mark Caine" },
+  { text: "Work hard in silence, let success be your noise.", author: "Frank Ocean" },
+  { text: "Genius is one percent inspiration and ninety-nine percent perspiration.", author: "Thomas Edison" },
+  { text: "Be not afraid of growing slowly; be afraid only of standing still.", author: "Chinese Proverb" },
+  { text: "Who seeks shall find.", author: "Sophocles" },
+  { text: "The greatest discovery of all time is that a person can change their future by merely changing their attitude.", author: "Oprah Winfrey" },
+  { text: "People who are crazy enough to think they can change the world are the ones who do.", author: "Rob Siltanen" },
+  { text: "Every strike brings me closer to the next home run.", author: "Babe Ruth" },
+  { text: "Ever tried. Ever failed. No matter. Try again. Fail again. Fail better.", author: "Samuel Beckett" },
+  { text: "Success is how high you bounce when you hit bottom.", author: "George S. Patton" },
+  { text: "With self-discipline most anything is possible.", author: "Theodore Roosevelt" },
+  { text: "What is not started today is never finished tomorrow.", author: "Johann Wolfgang von Goethe" },
+  { text: "Don't wait for opportunity. Create it.", author: "George Bernard Shaw" },
+  { text: "Perfection is not attainable, but if we chase perfection we can catch excellence.", author: "Vince Lombardi" },
+  { text: "Someone is sitting in the shade today because someone planted a tree a long time ago.", author: "Warren Buffett" },
+  { text: "Efficiency is doing things right; effectiveness is doing the right things.", author: "Peter Drucker" },
+  { text: "If I had eight hours to chop down a tree, I'd spend six sharpening my axe.", author: "Abraham Lincoln" },
+  { text: "The difference between a stumbling block and a stepping stone is how high you raise your foot.", author: "Benny Lewis" },
+  { text: "Keep your face always toward the sunshine and shadows will fall behind you.", author: "Walt Whitman" },
+  { text: "Logic will get you from A to B. Imagination will take you everywhere.", author: "Albert Einstein" },
+  // ── Aug 1–31 ──
+  { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein" },
+  { text: "Either you run the day, or the day runs you.", author: "Jim Rohn" },
+  { text: "The beginning is always today.", author: "Mary Shelley" },
+  { text: "What seems to us as bitter trials are often blessings in disguise.", author: "Oscar Wilde" },
+  { text: "Never bend your head. Always hold it high. Look the world straight in the eye.", author: "Helen Keller" },
+  { text: "The journey of a thousand miles begins with one step.", author: "Lao Tzu" },
+  { text: "Courage is not the absence of fear, but rather the judgment that something else is more important.", author: "Ambrose Redmoon" },
+  { text: "Life is really simple, but we insist on making it complicated.", author: "Confucius" },
+  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca" },
+  { text: "The measure of who we are is what we do with what we have.", author: "Vince Lombardi" },
+  { text: "If we did all the things we are capable of, we would literally astound ourselves.", author: "Thomas Edison" },
+  { text: "Don't judge each day by the harvest you reap but by the seeds that you plant.", author: "Robert Louis Stevenson" },
+  { text: "A smooth sea never made a skilled sailor.", author: "Franklin D. Roosevelt" },
+  { text: "Champions keep playing until they get it right.", author: "Billie Jean King" },
+  { text: "The greatest pleasure in life is doing what people say you cannot do.", author: "Walter Bagehot" },
+  { text: "The only person you should try to be better than is the person you were yesterday.", author: "Unknown" },
+  { text: "You will never win if you never begin.", author: "Helen Rowland" },
+  { text: "It is not the strongest of the species that survive, but the most adaptable.", author: "Charles Darwin" },
+  { text: "What defines us is how well we rise after falling.", author: "Lionel from Maid in Manhattan" },
+  { text: "Never give up on a dream just because of the time it will take to accomplish it.", author: "Earl Nightingale" },
+  { text: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
+  { text: "Don't wait. The time will never be just right.", author: "Napoleon Hill" },
+  { text: "A man who dares to waste one hour of time has not discovered the value of life.", author: "Charles Darwin" },
+  { text: "Strength and growth come only through continuous effort and struggle.", author: "Napoleon Hill" },
+  { text: "You don't have to control your thoughts. You just have to stop letting them control you.", author: "Dan Millman" },
+  { text: "Aim for the moon. If you miss, you may hit a star.", author: "W. Clement Stone" },
+  { text: "To live is the rarest thing in the world. Most people exist, that is all.", author: "Oscar Wilde" },
+  { text: "The man who moves a mountain begins by carrying away small stones.", author: "Confucius" },
+  { text: "No masterpiece was ever created by a lazy artist.", author: "Salvador Dali" },
+  { text: "Every accomplishment starts with the decision to try.", author: "John F. Kennedy" },
+  { text: "Believe in yourself and all that you are.", author: "Christian D. Larson" },
+  // ── Sep 1–30 ──
+  { text: "Life isn't about finding yourself. Life is about creating yourself.", author: "George Bernard Shaw" },
+  { text: "The most wasted of days is one without laughter.", author: "E.E. Cummings" },
+  { text: "Tough times never last, but tough people do.", author: "Robert H. Schuller" },
+  { text: "If you have good thoughts they will shine out of your face like sunbeams.", author: "Roald Dahl" },
+  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+  { text: "There is no substitute for hard work.", author: "Thomas Edison" },
+  { text: "To accomplish great things, we must not only act, but also dream; not only plan, but also believe.", author: "Anatole France" },
+  { text: "The world breaks everyone, and afterward, many are strong at the broken places.", author: "Ernest Hemingway" },
+  { text: "How wonderful it is that nobody need wait a single moment before starting to improve the world.", author: "Anne Frank" },
+  { text: "If you change the way you look at things, the things you look at change.", author: "Wayne Dyer" },
+  { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+  { text: "You cannot swim for new horizons until you have courage to lose sight of the shore.", author: "William Faulkner" },
+  { text: "Take the risk or lose the chance.", author: "Unknown" },
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
+  { text: "Happiness is not by chance, but by choice.", author: "Jim Rohn" },
+  { text: "If you want to achieve greatness stop asking for permission.", author: "Unknown" },
+  { text: "Things work out best for those who make the best of how things work out.", author: "John Wooden" },
+  { text: "To handle yourself, use your head; to handle others, use your heart.", author: "Eleanor Roosevelt" },
+  { text: "The only place where success comes before work is in the dictionary.", author: "Vidal Sassoon" },
+  { text: "Your passion is waiting for your courage to catch up.", author: "Isabelle Lafleche" },
+  { text: "Don't let the noise of others' opinions drown out your own inner voice.", author: "Steve Jobs" },
+  { text: "What matters most is how well you walk through the fire.", author: "Charles Bukowski" },
+  { text: "Success is a state of mind. If you want success, start thinking of yourself as a success.", author: "Joyce Brothers" },
+  { text: "The way I see it, if you want the rainbow, you gotta put up with the rain.", author: "Dolly Parton" },
+  { text: "He who opens a school door, closes a prison.", author: "Victor Hugo" },
+  { text: "Dream as if you'll live forever. Live as if you'll die today.", author: "James Dean" },
+  { text: "Dwell on the beauty of life. Watch the stars, and see yourself running with them.", author: "Marcus Aurelius" },
+  { text: "What counts in life is not the mere fact that we have lived.", author: "Nelson Mandela" },
+  { text: "You have within you right now, everything you need to deal with whatever the world throws at you.", author: "Brian Tracy" },
+  { text: "Our greatest glory is not in never failing, but in rising up every time we fail.", author: "Ralph Waldo Emerson" },
+  // ── Oct 1–31 ──
+  { text: "Don't let today's disappointments cast a shadow on tomorrow's dreams.", author: "Unknown" },
+  { text: "You get what you give.", author: "Jennifer Lopez" },
+  { text: "Definiteness of purpose is the starting point of all achievement.", author: "W. Clement Stone" },
+  { text: "Our doubts are traitors, and make us lose the good we oft might win.", author: "William Shakespeare" },
+  { text: "You are enough just as you are.", author: "Meghan Markle" },
+  { text: "The only thing we have to fear is fear itself.", author: "Franklin D. Roosevelt" },
+  { text: "What you do speaks so loudly that I cannot hear what you say.", author: "Ralph Waldo Emerson" },
+  { text: "A ship in harbor is safe, but that is not what ships are built for.", author: "John A. Shedd" },
+  { text: "Be courageous. Challenge orthodoxy. Stand up for what you believe in.", author: "Amal Clooney" },
+  { text: "Begin anywhere.", author: "John Cage" },
+  { text: "Failure is the condiment that gives success its flavor.", author: "Truman Capote" },
+  { text: "The secret to humor is surprise.", author: "Aristotle" },
+  { text: "Never confuse a single defeat with a final defeat.", author: "F. Scott Fitzgerald" },
+  { text: "Life is a succession of lessons which must be lived to be understood.", author: "Helen Keller" },
+  { text: "To be the best, you must be able to handle the worst.", author: "Wilson Kanadi" },
+  { text: "First they ignore you, then they ridicule you, then they fight you, and then you win.", author: "Mahatma Gandhi" },
+  { text: "Believe something and the universe is on its way to being changed.", author: "Diane Duane" },
+  { text: "I attribute my success to this: I never gave or took any excuse.", author: "Florence Nightingale" },
+  { text: "Education is the passport to the future.", author: "Malcolm X" },
+  { text: "Growth is the only evidence of life.", author: "John Henry Newman" },
+  { text: "We do not remember days, we remember moments.", author: "Cesare Pavese" },
+  { text: "Kind words can be short and easy to speak, but their echoes are truly endless.", author: "Mother Teresa" },
+  { text: "Without deviation from the norm, progress is not possible.", author: "Frank Zappa" },
+  { text: "Have no fear of perfection. You'll never reach it.", author: "Salvador Dali" },
+  { text: "You must do the things you think you cannot do.", author: "Eleanor Roosevelt" },
+  { text: "Make each day your masterpiece.", author: "John Wooden" },
+  { text: "The mind that opens to a new idea never returns to its original size.", author: "Albert Einstein" },
+  { text: "The more you praise and celebrate your life, the more there is in life to celebrate.", author: "Oprah Winfrey" },
+  { text: "We delight in the beauty of the butterfly, but rarely admit the changes it has gone through.", author: "Maya Angelou" },
+  { text: "Everything is created twice, first in the mind and then in reality.", author: "Robin Sharma" },
+  { text: "Don't be trapped by dogma — which is living with the results of other people's thinking.", author: "Steve Jobs" },
+  // ── Nov 1–30 ──
+  { text: "The secret of change is to focus all your energy not on fighting the old, but on building the new.", author: "Socrates" },
+  { text: "Life is a long lesson in humility.", author: "James M. Barrie" },
+  { text: "Be happy for this moment. This moment is your life.", author: "Omar Khayyam" },
+  { text: "The two most important days in your life are the day you are born and the day you find out why.", author: "Mark Twain" },
+  { text: "Time you enjoy wasting is not wasted time.", author: "Marthe Troly-Curtin" },
+  { text: "You're off to great places. Today is your day. Your mountain is waiting, so get on your way.", author: "Dr. Seuss" },
+  { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
+  { text: "One child, one teacher, one book, one pen can change the world.", author: "Malala Yousafzai" },
+  { text: "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice.", author: "Brian Herbert" },
+  { text: "What's done is done. What's gone is gone. One of life's lessons is always moving on.", author: "Unknown" },
+  { text: "I alone cannot change the world, but I can cast a stone across the waters to create many ripples.", author: "Mother Teresa" },
+  { text: "Don't raise your voice, improve your argument.", author: "Desmond Tutu" },
+  { text: "In a gentle way, you can shake the world.", author: "Mahatma Gandhi" },
+  { text: "If you don't like the road you're walking, start paving another one.", author: "Dolly Parton" },
+  { text: "Let us make our future now, and let us make our dreams tomorrow's reality.", author: "Malala Yousafzai" },
+  { text: "It is health that is real wealth and not pieces of gold and silver.", author: "Mahatma Gandhi" },
+  { text: "Peace begins with a smile.", author: "Mother Teresa" },
+  { text: "The only source of knowledge is experience.", author: "Albert Einstein" },
+  { text: "Gratitude turns what we have into enough.", author: "Aesop" },
+  { text: "Joy is not in things; it is in us.", author: "Richard Wagner" },
+  { text: "Kindness is a language which the deaf can hear and the blind can see.", author: "Mark Twain" },
+  { text: "Silence is a source of great strength.", author: "Lao Tzu" },
+  { text: "Patience is bitter, but its fruit is sweet.", author: "Jean-Jacques Rousseau" },
+  { text: "The more I read, the more I acquire, the more certain I am that I know nothing.", author: "Voltaire" },
+  { text: "Not all those who wander are lost.", author: "J.R.R. Tolkien" },
+  { text: "In three words I can sum up everything I've learned about life: it goes on.", author: "Robert Frost" },
+  { text: "We must be willing to let go of the life we planned so as to have the life that is waiting.", author: "Joseph Campbell" },
+  { text: "Darkness cannot drive out darkness; only light can do that.", author: "Martin Luther King Jr." },
+  { text: "The earth has music for those who listen.", author: "George Santayana" },
+  { text: "No act of kindness, no matter how small, is ever wasted.", author: "Aesop" },
+  // ── Dec 1–31 ──
+  { text: "Life is either a great adventure or nothing.", author: "Helen Keller" },
+  { text: "The best way out is always through.", author: "Robert Frost" },
+  { text: "Not everything that is faced can be changed, but nothing can be changed until it is faced.", author: "James Baldwin" },
+  { text: "Today a reader, tomorrow a leader.", author: "Margaret Fuller" },
+  { text: "You can never cross the ocean until you have the courage to lose sight of the shore.", author: "Christopher Columbus" },
+  { text: "Believe and act as if it were impossible to fail.", author: "Charles Kettering" },
+  { text: "Whatever you are, be a good one.", author: "Abraham Lincoln" },
+  { text: "To live a creative life, we must lose our fear of being wrong.", author: "Joseph Chilton Pearce" },
+  { text: "Where there is love there is life.", author: "Mahatma Gandhi" },
+  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
+  { text: "Love the life you live. Live the life you love.", author: "Bob Marley" },
+  { text: "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.", author: "Buddha" },
+  { text: "We all have two lives. The second one starts when we realize we only have one.", author: "Confucius" },
+  { text: "Fortune favors the bold.", author: "Virgil" },
+  { text: "The unexamined life is not worth living.", author: "Socrates" },
+  { text: "Those who dare to fail miserably can achieve greatly.", author: "John F. Kennedy" },
+  { text: "True knowledge exists in knowing that you know nothing.", author: "Socrates" },
+  { text: "Go as far as you can see; when you get there, you'll be able to see farther.", author: "J.P. Morgan" },
+  { text: "Success is a lousy teacher. It seduces smart people into thinking they can't lose.", author: "Bill Gates" },
+  { text: "The time is always right to do what is right.", author: "Martin Luther King Jr." },
+  { text: "A goal is a dream with a deadline.", author: "Napoleon Hill" },
+  { text: "Don't find fault, find a remedy.", author: "Henry Ford" },
+  { text: "Life is really generous to those who pursue their destiny.", author: "Paulo Coelho" },
+  { text: "What great thing would you attempt if you knew you could not fail?", author: "Robert H. Schuller" },
+  { text: "He who has health has hope; and he who has hope has everything.", author: "Thomas Carlyle" },
+  { text: "Choose to be optimistic, it feels better.", author: "Dalai Lama" },
+  { text: "When one door of happiness closes, another opens.", author: "Helen Keller" },
+  { text: "Happiness is a warm puppy.", author: "Charles M. Schulz" },
+  { text: "The only journey is the one within.", author: "Rainer Maria Rilke" }
+];
+
+// ── Quote state ────────────────────────────────────────
+let quoteIndex = getTodayQuoteIndex();
+
+function getDayOfYear() {
+  const now  = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  return Math.floor((now - start) / 86400000);
+}
+function getTodayQuoteIndex() {
+  return getDayOfYear() % QUOTES.length;
+}
+function renderQuote(idx) {
+  const q   = QUOTES[idx];
+  const content = document.getElementById('quote-content');
+  content.classList.add('fading');
+  setTimeout(() => {
+    document.getElementById('quote-text').textContent   = q.text;
+    document.getElementById('quote-author').textContent = q.author;
+    document.getElementById('quote-counter').textContent =
+      `${idx + 1} / ${QUOTES.length}`;
+    const todayIdx = getTodayQuoteIndex();
+    const doy      = getDayOfYear();
+    document.getElementById('quote-day-badge').textContent =
+      idx === todayIdx ? `Day ${doy} of 365` : `#${idx + 1}`;
+    content.classList.remove('fading');
+  }, 140);
+}
+function browseQuote(dir) {
+  quoteIndex = (quoteIndex + dir + QUOTES.length) % QUOTES.length;
+  renderQuote(quoteIndex);
+}
+function jumpToToday() {
+  quoteIndex = getTodayQuoteIndex();
+  renderQuote(quoteIndex);
+}
+
+// midnight refresh
+(function scheduleMidnightRefresh() {
+  const now  = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  setTimeout(() => { quoteIndex = getTodayQuoteIndex(); renderQuote(quoteIndex); scheduleMidnightRefresh(); }, next - now);
+})();
+
+
+// ══════════════════════════════════════════════════════
+//  TASK APP  STATE
+// ══════════════════════════════════════════════════════
+let tasks   = JSON.parse(localStorage.getItem('todo-v122-tasks')   || '[]');
+let archive = JSON.parse(localStorage.getItem('todo-v122-archive') || '[]');
+
+const _n = new Date();
+let calYear     = _n.getFullYear();
+let calMonth    = _n.getMonth();
+let calSelected = null;
+const expandedTasks = new Set(); // track which task cards are expanded
+
+// ── Core helpers ──────────────────────────────────────
+function todayStr() { return dateToStr(new Date()); }
+function dateToStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function pad(n) { return String(n).padStart(2,'0'); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function checkSvg() {
+  return `<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+    <path d="M1.5 5L4 7.5L8.5 2.5" stroke="#fff" stroke-width="1.8"
+      stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function freqText(f) {
+  return {daily:'Daily',weekdays:'Weekdays',weekends:'Weekends',
+          weekly:'Weekly',biweekly:'Bi-Weekly',monthly:'Monthly'}[f] || f || 'Custom';
+}
+function fmtDateShort(s) {
+  if (!s) return '';
+  const [y,m,d] = s.split('-');
+  return new Date(+y,+m-1,+d).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function fmtDateFull(s) {
+  if (!s) return '';
+  const [y,m,d] = s.split('-');
+  return new Date(+y,+m-1,+d)
+    .toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+function shake(id) {
+  const el = document.getElementById(id);
+  el.style.outline = '2px solid var(--urgent)';
+  el.animate([{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'translateX(0)'}],
+    {duration:250,iterations:2});
+  setTimeout(() => el.style.outline='', 1000);
+}
+
+// ── Completion helpers ─────────────────────────────────
+function isDoneOn(task, dateStr) {
+  if (task.cat === 'onetime') return !!task.done;
+  return Array.isArray(task.completedDates) && task.completedDates.includes(dateStr);
+}
+function isOverdue(task) {
+  return task.cat==='onetime' && task.deadline && !task.done && task.deadline < todayStr();
+}
+function taskDotColor(task) {
+  if (task.cat==='habit')          return 'var(--habit)';
+  if (task.cat==='repeat')         return 'var(--repeat)';
+  if (task.priority==='both')      return 'var(--accent2)';
+  if (task.priority==='urgent')    return 'var(--urgent)';
+  if (task.priority==='important') return 'var(--important)';
+  return 'var(--muted)';
+}
+
+// ── Streak ─────────────────────────────────────────────
+function getStreak(task) {
+  if (!['daily','weekdays','weekends'].includes(task.freq)) return 0;
+  if (!Array.isArray(task.completedDates) || !task.completedDates.length) return 0;
+  const set = new Set(task.completedDates);
+  let streak = 0, cursor = new Date();
+  for (let i = 0; i < 400; i++) {
+    const dow   = cursor.getDay();
+    const sched = task.freq==='daily' ? true
+                : task.freq==='weekdays' ? dow>=1&&dow<=5
+                : dow===0||dow===6;
+    if (sched) {
+      if (!set.has(dateToStr(cursor))) break;
+      streak++;
+    }
+    cursor.setDate(cursor.getDate()-1);
+  }
+  return streak;
+}
+
+// ── Per-day task scheduling ────────────────────────────
+function getTasksForDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const date    = new Date(y,m-1,d);
+  const dow     = date.getDay();
+  const dom     = date.getDate();
+  const result  = [];
+  tasks.forEach(task => {
+    if (task.cat === 'onetime') {
+      if (task.deadline === dateStr) result.push(task);
+      return;
+    }
+    const created    = new Date(task.createdAt || task.id);
+    const createdMid = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+    const freq = task.freq;
+    if      (freq==='daily')                                  result.push(task);
+    else if (freq==='weekdays' && dow>=1 && dow<=5)           result.push(task);
+    else if (freq==='weekends' && (dow===0||dow===6))         result.push(task);
+    else if (freq==='weekly'   && dow===created.getDay())     result.push(task);
+    else if (freq==='biweekly' && dow===created.getDay()) {
+      const diff = Math.round((date-createdMid)/86400000);
+      if (diff>=0 && (diff/7)%2===0) result.push(task);
+    }
+    else if (freq==='monthly' && dom===created.getDate())     result.push(task);
+  });
+  return result;
+}
+function getProgressForDate(dateStr) {
+  const dayTasks = getTasksForDate(dateStr);
+  const total    = dayTasks.length;
+  if (!total) return { pct:0, done:0, total:0 };
+  const done = dayTasks.filter(t => isDoneOn(t, dateStr)).length;
+  return { pct: Math.round(done/total*100), done, total };
+}
+function getFullProgressForToday() {
+  const today      = todayStr();
+  const recurToday = getTasksForDate(today).filter(t => t.cat!=='onetime');
+  const allOnetime = tasks.filter(t => t.cat==='onetime');
+  const overdueList = allOnetime.filter(t => isOverdue(t));
+  const recurDone   = recurToday.filter(t => isDoneOn(t, today)).length;
+  const oneTimeDone = allOnetime.filter(t => t.done).length;
+  const total = recurToday.length + allOnetime.length;
+  const done  = recurDone + oneTimeDone;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  return { pct, done, total, recurTotal:recurToday.length, recurDone,
+           oneTimeTotal:allOnetime.length, oneTimeDone,
+           overdueTotal:overdueList.length, overdueDone:0 };
+}
+
+// ── Tab switching ──────────────────────────────────────
+function switchTab(name) {
+  ['tasks','matrix','calendar','focus','analytics','sync','archive'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('active', t===name);
+    document.getElementById('tab-'+t+'-btn').classList.toggle('active', t===name);
+  });
+  if (name==='calendar') renderCalendar();
+  if (name==='focus') renderFocusTab();
+  if (name==='analytics') renderAnalytics();
+  if (name==='sync') renderSyncTab();
+}
+
+// ── Form ───────────────────────────────────────────────
+function onCatChange() {
+  const cat    = document.getElementById('inp-cat').value;
+  const isFreq = cat==='habit'||cat==='repeat';
+  document.getElementById('freq-wrap').classList.toggle('show', isFreq);
+  document.getElementById('onetime-wrap').classList.toggle('show', cat==='onetime');
+  document.getElementById('deadline-wrap').classList.toggle('show', cat==='onetime');
+  if (!isFreq) document.getElementById('custom-freq-wrap').style.setProperty('display','none','important');
+  document.getElementById('inp-freq').onchange = function() {
+    const custom = this.value==='custom' && isFreq;
+    if (custom) { document.getElementById('custom-freq-wrap').style.removeProperty('display'); document.getElementById('custom-freq-wrap').classList.add('show'); }
+    else { document.getElementById('custom-freq-wrap').style.setProperty('display','none','important'); document.getElementById('custom-freq-wrap').classList.remove('show'); }
+  };
+}
+function addTask() {
+  const name = document.getElementById('inp-name').value.trim();
+  const cat  = document.getElementById('inp-cat').value;
+  if (!name) { shake('inp-name'); return; }
+  if (!cat)  { shake('inp-cat');  return; }
+  let freq=null, priority=null, deadline=null;
+  if (cat==='habit'||cat==='repeat') {
+    const f = document.getElementById('inp-freq').value;
+    freq = f==='custom' ? (document.getElementById('inp-custom-freq').value.trim()||'Custom') : f;
+  }
+  if (cat==='onetime') {
+    priority = document.getElementById('inp-priority').value;
+    deadline = document.getElementById('inp-deadline').value || null;
+  }
+  const maxOrder = tasks.filter(t=>t.cat===cat).reduce((m,t)=>Math.max(m,t.sortOrder||0),0);
+  tasks.push({ id:Date.now(), createdAt:new Date().toISOString(), name, cat, freq, priority, deadline, done:false, completedDates:[], notes:'', subtasks:[], files:[], sortOrder:maxOrder+1 });
+  save(); render();
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-cat').value='';
+  document.getElementById('inp-deadline').value='';
+  ['freq-wrap','onetime-wrap','deadline-wrap'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  document.getElementById('custom-freq-wrap').style.setProperty('display','none','important');
+}
+
+// ── Task actions ───────────────────────────────────────
+function toggleDone(id, dateStr) {
+  const t = tasks.find(t=>t.id===id);
+  if (!t) return;
+  if (t.cat==='onetime') {
+    t.done = !t.done;
+    // auto-archive one-time task — remove from active list
+    if (t.done) {
+      archive.push({...t, archivedAt:new Date().toISOString()});
+      tasks = tasks.filter(x=>x.id!==id);
+    }
+  } else {
+    // recurring / habit
+    if (!Array.isArray(t.completedDates)) t.completedDates=[];
+    const idx = t.completedDates.indexOf(dateStr);
+    if (idx>=0) {
+      // un-crossing — remove from completedDates (no archive change)
+      t.completedDates.splice(idx,1);
+    } else {
+      // crossing off — mark done and archive a record
+      t.completedDates.push(dateStr);
+      archive.push({
+        ...t,
+        archivedAt: new Date().toISOString(),
+        archivedForDate: dateStr,
+        archiveNote: `Completed on ${fmtDateFull(dateStr)}`
+      });
+    }
+  }
+  save(); render();
+  if (document.getElementById('panel-calendar').classList.contains('active')) renderCalendar();
+}
+function deleteTask(id) {
+  tasks = tasks.filter(t=>t.id!==id);
+  save(); render();
+  if (document.getElementById('panel-calendar').classList.contains('active')) renderCalendar();
+}
+// archiveCompleted removed — one-time tasks auto-archive on completion
+function clearArchive() {
+  if (!archive.length) return;
+  if (!confirm('Permanently delete all archived tasks?')) return;
+  archive=[]; save(); render();
+}
+function deleteArchived(id) {
+  archive=archive.filter(a=>a.id!==id); save(); render();
+}
+function deleteArchivedByIndex(idx) {
+  if (idx>=0 && idx<archive.length) { archive.splice(idx,1); save(); render(); }
+}
+function save() {
+  localStorage.setItem('todo-v122-tasks',   JSON.stringify(tasks));
+  localStorage.setItem('todo-v122-archive', JSON.stringify(archive));
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const today   = todayStr();
+  const habits  = tasks.filter(t=>t.cat==='habit');
+  const repeats = tasks.filter(t=>t.cat==='repeat');
+  const onetime = tasks.filter(t=>t.cat==='onetime');
+
+  renderTaskList('list-habits',  habits,  'habit');
+  renderTaskList('list-repeat',  repeats, 'repeat');
+  renderTaskList('list-onetime', onetime, 'onetime');
+
+  document.getElementById('cnt-habits').textContent  = habits.length;
+  document.getElementById('cnt-repeat').textContent  = repeats.length;
+  document.getElementById('cnt-onetime').textContent = onetime.length;
+
+  renderMatrixQ('q1-list', onetime.filter(t=>t.priority==='both'),      'qcnt-1');
+  renderMatrixQ('q2-list', onetime.filter(t=>t.priority==='important'), 'qcnt-2');
+  renderMatrixQ('q3-list', onetime.filter(t=>t.priority==='urgent'),    'qcnt-3');
+  renderMatrixQ('q4-list', onetime.filter(t=>t.priority==='none'),      'qcnt-4');
+
+  renderArchive();
+
+  const p    = getFullProgressForToday();
+  const rPct = p.recurTotal   ? Math.round(p.recurDone   /p.recurTotal  *100) : 0;
+  const oPct = p.oneTimeTotal ? Math.round(p.oneTimeDone /p.oneTimeTotal*100) : 0;
+
+  document.getElementById('ps-recur-fill').style.width    = rPct + '%';
+  document.getElementById('ps-recur-count').textContent   = `${p.recurDone} / ${p.recurTotal}`;
+  document.getElementById('ps-recur-pct').textContent     = rPct + '%';
+  document.getElementById('ps-onetime-fill').style.width  = oPct + '%';
+  document.getElementById('ps-onetime-count').textContent = `${p.oneTimeDone} / ${p.oneTimeTotal}`;
+  document.getElementById('ps-onetime-pct').textContent   = oPct + '%';
+  document.getElementById('ps-overdue-fill').style.width  = '0%';
+  document.getElementById('ps-overdue-count').textContent = `0 / ${p.overdueTotal}`;
+  document.getElementById('ps-overdue-pct').textContent   = p.overdueTotal ? '0%' : '—';
+
+  const fill = document.getElementById('prog-fill');
+  fill.style.width = p.pct + '%';
+  fill.className   = 'prog-bar-fill' + (p.pct===100 ? ' full' : '');
+  document.getElementById('prog-pct').textContent  = p.pct + '%';
+  document.getElementById('prog-date').textContent =
+    '— ' + new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('prog-note').textContent = p.total
+    ? `${p.done} of ${p.total} tasks completed  ·  ${p.recurTotal} recurring scheduled today  ·  ${p.oneTimeTotal} one-time tasks`
+    : 'No tasks yet — add one above';
+
+  const recurToday = getTasksForDate(today).filter(t=>t.cat!=='onetime');
+  document.getElementById('st-habits').textContent    = habits.length;
+  document.getElementById('st-repeat').textContent    = repeats.length;
+  document.getElementById('st-urgent').textContent    = onetime.filter(t=>t.priority==='urgent'||t.priority==='both').length;
+  document.getElementById('st-important').textContent = onetime.filter(t=>t.priority==='important'||t.priority==='both').length;
+  document.getElementById('st-overdue').textContent   = onetime.filter(t=>isOverdue(t)).length;
+  document.getElementById('st-done').textContent      =
+    recurToday.filter(t=>isDoneOn(t,today)).length + onetime.filter(t=>t.done).length;
+  document.getElementById('st-archive').textContent   = archive.length;
+  document.getElementById('tb-tasks').textContent     = tasks.length;
+  document.getElementById('tb-matrix').textContent    = onetime.length;
+  document.getElementById('tb-calendar').textContent  = tasks.length;
+  document.getElementById('tb-archive').textContent   = archive.length;
+
+  // update focus tab badge (undone count)
+  const todayUndone = [
+    ...getTasksForDate(today).filter(t => t.cat!=='onetime' && !isDoneOn(t,today)),
+    ...onetime.filter(t => !t.done)
+  ];
+  const seenF = new Set();
+  const uniqueF = todayUndone.filter(t => { if(seenF.has(t.id)) return false; seenF.add(t.id); return true; });
+  document.getElementById('tb-focus').textContent = uniqueF.length;
+}
+
+// ── Task list renderer ─────────────────────────────────
+function renderTaskList(containerId, items, cat) {
+  const el    = document.getElementById(containerId);
+  const today = todayStr();
+  const sorted = [...items].sort((a,b) => {
+    const aDone = isDoneOn(a,today), bDone = isDoneOn(b,today);
+    if (aDone!==bDone) return aDone?1:-1;
+    if (!aDone && isOverdue(a)!==isOverdue(b)) return isOverdue(a)?-1:1;
+    if (cat==='onetime') { const o={both:0,urgent:1,important:2,none:3}; const pd=(o[a.priority]??4)-(o[b.priority]??4); if(pd!==0) return pd; }
+    // manual sort order
+    return (a.sortOrder||0) - (b.sortOrder||0);
+  });
+  if (!sorted.length) { el.innerHTML='<div class="empty">No tasks yet</div>'; return; }
+  el.innerHTML = sorted.map(t => {
+    const done = isDoneOn(t, today);
+    let badges='', accent='';
+    if (cat==='habit'||cat==='repeat') {
+      badges += `<span class="badge badge-freq">↻ ${freqText(t.freq)}</span>`;
+      if (done) badges += `<span class="badge badge-done-today">✓ Done today</span>`;
+      if (cat==='habit') {
+        const s = getStreak(t);
+        if (s>=2) badges += `<span class="badge badge-streak">🔥 ${s} day streak</span>`;
+      }
+      const tot = Array.isArray(t.completedDates) ? t.completedDates.length : 0;
+      if (tot>0&&!done) badges += `<span class="badge badge-completions">↻ ${tot}</span>`;
+    }
+    if (cat==='onetime') {
+      if (isOverdue(t))    badges += `<span class="badge badge-overdue">⚠ Overdue · ${fmtDateShort(t.deadline)}</span>`;
+      else if (t.deadline) badges += `<span class="badge badge-deadline">📅 ${fmtDateShort(t.deadline)}</span>`;
+      if (t.priority==='urgent'   ||t.priority==='both') badges += `<span class="badge badge-urgent">⚡ Urgent</span>`;
+      if (t.priority==='important'||t.priority==='both') badges += `<span class="badge badge-important">★ Important</span>`;
+      accent = t.priority==='both'?'onetime-both':t.priority==='urgent'?'onetime-urgent':t.priority==='important'?'onetime-important':'';
+    }
+    // detail indicators (collapsed)
+    const hasNotes = t.notes && t.notes.trim();
+    const hasSubs  = Array.isArray(t.subtasks) && t.subtasks.length;
+    const hasFiles = Array.isArray(t.files) && t.files.length;
+    const subsDone = hasSubs ? t.subtasks.filter(s=>s.done).length : 0;
+    if (hasNotes) badges += `<span class="badge badge-notes">📝 Notes</span>`;
+    if (hasSubs)  badges += `<span class="badge badge-subtasks">☑ ${subsDone}/${t.subtasks.length}</span>`;
+    if (hasFiles) badges += `<span class="badge badge-files">📎 ${t.files.length}</span>`;
+    const isExpanded = expandedTasks.has(t.id);
+
+    return `<div class="task-card ${done?'done-today':''} ${accent} ${isOverdue(t)?'overdue':''} ${isExpanded?'expanded':''}" id="tc-${t.id}" draggable="true" data-task-id="${t.id}" data-cat="${cat}">
+      <div class="drag-handle" title="Drag to reorder"><span></span><span></span><span></span></div>
+      <div class="task-check" onclick="toggleDone(${t.id},'${today}')">${checkSvg()}</div>
+      <div class="task-body">
+        <div class="task-text">${esc(t.name)}</div>
+        ${badges?`<div class="task-meta">${badges}</div>`:''}
+        ${renderTaskDetail(t, isExpanded)}
+      </div>
+      <button class="task-expand-btn ${isExpanded?'open':''}" onclick="toggleExpand(${t.id})" title="Expand">▼</button>
+      <button class="task-del" onclick="deleteTask(${t.id})" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  TASK DETAIL — Notes, Subtasks, File Attachments
+// ══════════════════════════════════════════════════════
+function toggleExpand(id) {
+  if (expandedTasks.has(id)) expandedTasks.delete(id);
+  else expandedTasks.add(id);
+  render();
+  if (document.getElementById('panel-calendar').classList.contains('active')) renderCalendar();
+}
+
+function renderTaskDetail(t, isExpanded) {
+  if (!isExpanded) return '';
+  const hasSubs = Array.isArray(t.subtasks) && t.subtasks.length;
+  const subsDone = hasSubs ? t.subtasks.filter(s=>s.done).length : 0;
+  const subsPct  = hasSubs ? Math.round(subsDone/t.subtasks.length*100) : 0;
+
+  // Notes section
+  const notesHtml = `<div class="td-section">
+    <div class="td-label"><svg viewBox="0 0 16 16"><path d="M2 2h12v12H2V2zm2 3v1h8V5H4zm0 3v1h8V8H4zm0 3v1h5v-1H4z"/></svg> Notes</div>
+    <textarea class="td-notes-input" placeholder="Add notes, description, or context..."
+      onchange="updateNotes(${t.id},this.value)" onfocus="this.style.minHeight='80px'">${esc(t.notes||'')}</textarea>
+  </div>`;
+
+  // Subtasks section
+  const subsListHtml = (t.subtasks||[]).map((s,i) => `
+    <div class="subtask-item ${s.done?'st-done':''}">
+      <div class="subtask-check" onclick="toggleSubtask(${t.id},${i})">${checkSvg()}</div>
+      <span class="st-text">${esc(s.text)}</span>
+      <button class="st-del" onclick="deleteSubtask(${t.id},${i})" title="Remove">✕</button>
+    </div>`).join('');
+
+  const subsProgressHtml = hasSubs ? `<div class="st-progress">
+    <div class="st-prog-bar"><div class="st-prog-fill" style="width:${subsPct}%"></div></div>
+    <span>${subsDone}/${t.subtasks.length} done</span>
+  </div>` : '';
+
+  const subsHtml = `<div class="td-section">
+    <div class="td-label"><svg viewBox="0 0 16 16"><path d="M3 3h2v2H3V3zm4 0h6v2H7V3zM3 7h2v2H3V7zm4 0h6v2H7V7zm-4 4h2v2H3v-2zm4 0h6v2H7v-2z"/></svg> Checklist</div>
+    <div class="subtask-list">${subsListHtml}</div>
+    ${subsProgressHtml}
+    <div class="subtask-add-row">
+      <input class="subtask-add-input" id="st-inp-${t.id}" type="text"
+        placeholder="Add a subtask..." onkeydown="if(event.key==='Enter')addSubtask(${t.id})"/>
+      <button class="subtask-add-btn" onclick="addSubtask(${t.id})">+ Add</button>
+    </div>
+  </div>`;
+
+  // Files section
+  const filesListHtml = (t.files||[]).map((f,i) => `
+    <div class="file-item">
+      <span class="file-icon">${fileIcon(f.name)}</span>
+      <span class="file-name">${esc(f.name)}</span>
+      <span class="file-size">${formatFileSize(f.size)}</span>
+      <button class="file-download" onclick="downloadFile(${t.id},${i})" title="Download">↓ Save</button>
+      <button class="file-del" onclick="deleteFile(${t.id},${i})" title="Remove">✕ </button>
+    </div>`).join('');
+
+  const filesHtml = `<div class="td-section">
+    <div class="td-label"><svg viewBox="0 0 16 16"><path d="M8 1L3 5v9h10V5L8 1zm0 2l3 3H9v4H7V6H5l3-3z" transform="rotate(180 8 8)"/></svg> Attachments</div>
+    <div class="file-list">${filesListHtml}</div>
+    <div class="file-add-row">
+      <label class="file-add-label">
+        <span class="attach-icon"><svg viewBox="0 0 16 16"><path d="M14 5.5l-5.5 5.5a3.5 3.5 0 01-5-5L9 .5a2 2 0 013 3L6.5 9a.5.5 0 01-1-1L11 3.5" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span>Attach file</span>
+        <input type="file" multiple onchange="handleFileAttach(${t.id},this.files)"/>
+      </label>
+    </div>
+  </div>`;
+
+  return `<div class="task-detail open">${notesHtml}${subsHtml}${filesHtml}</div>`;
+}
+
+// ── Notes ──
+function updateNotes(id, value) {
+  const t = tasks.find(t=>t.id===id);
+  if (!t) return;
+  t.notes = value;
+  save();
+}
+
+// ── Subtasks ──
+function addSubtask(taskId) {
+  const inp = document.getElementById('st-inp-'+taskId);
+  const text = inp.value.trim();
+  if (!text) return;
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t) return;
+  if (!Array.isArray(t.subtasks)) t.subtasks = [];
+  t.subtasks.push({ text, done:false });
+  inp.value = '';
+  save(); render();
+}
+
+function toggleSubtask(taskId, index) {
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t || !t.subtasks || !t.subtasks[index]) return;
+  t.subtasks[index].done = !t.subtasks[index].done;
+  save(); render();
+}
+
+function deleteSubtask(taskId, index) {
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t || !t.subtasks) return;
+  t.subtasks.splice(index, 1);
+  save(); render();
+}
+
+// ── File Attachments ──
+function handleFileAttach(taskId, fileList) {
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t) return;
+  if (!Array.isArray(t.files)) t.files = [];
+
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      t.files.push({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        data: e.target.result, // base64 data URL
+        addedAt: new Date().toISOString()
+      });
+      save(); render();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function deleteFile(taskId, index) {
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t || !t.files) return;
+  t.files.splice(index, 1);
+  save(); render();
+}
+
+function downloadFile(taskId, index) {
+  const t = tasks.find(t=>t.id===taskId);
+  if (!t || !t.files || !t.files[index]) return;
+  const f = t.files[index];
+  const a = document.createElement('a');
+  a.href = f.data;
+  a.download = f.name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function fileIcon(name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  const icons = {
+    pdf:'📕', doc:'📘', docx:'📘', xls:'📗', xlsx:'📗', csv:'📗',
+    ppt:'📙', pptx:'📙', jpg:'🖼️', jpeg:'🖼️', png:'🖼️', gif:'🖼️',
+    svg:'🖼️', mp3:'🎵', wav:'🎵', mp4:'🎬', mov:'🎬', zip:'📦',
+    rar:'📦', txt:'📄', json:'📄', js:'📄', html:'📄', css:'📄'
+  };
+  return icons[ext] || '📎';
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+// ── Matrix renderer ────────────────────────────────────
+function renderMatrixQ(listId, items, cntId) {
+  document.getElementById(cntId).textContent = items.length;
+  const el=document.getElementById(listId), today=todayStr();
+  const sorted=[...items].sort((a,b)=>isDoneOn(a,today)-isDoneOn(b,today));
+  if (!sorted.length) { el.innerHTML='<div class="empty">No tasks</div>'; return; }
+  el.innerHTML = sorted.map(t=>{
+    const done=isDoneOn(t,today);
+    let meta='';
+    if (isOverdue(t))    meta+=`<span class="badge badge-overdue">⚠ Overdue · ${fmtDateShort(t.deadline)}</span>`;
+    else if (t.deadline) meta+=`<span class="badge badge-deadline">📅 ${fmtDateShort(t.deadline)}</span>`;
+    return `<div class="matrix-task ${done?'done-today':''}">
+      <div class="mt-check" onclick="toggleDone(${t.id},'${today}')">${checkSvg()}</div>
+      <div class="mt-body"><div class="mt-text">${esc(t.name)}</div>${meta?`<div class="mt-meta">${meta}</div>`:''}</div>
+      <button class="mt-del" onclick="deleteTask(${t.id})" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Calendar ───────────────────────────────────────────
+function calPrev()  { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext()  { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function calToday() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); calSelected=dateToStr(n); renderCalendar(); }
+function selectDate(ds) { calSelected=calSelected===ds?null:ds; renderCalendar(); }
+
+function renderCalendar() {
+  const MONTHS=['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+  const today=todayStr();
+  document.getElementById('cal-title').innerHTML = `${MONTHS[calMonth]} <span>${calYear}</span>`;
+  const firstDow  = new Date(calYear,calMonth,1).getDay();
+  const daysInMon = new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev= new Date(calYear,calMonth,0).getDate();
+  let html='';
+  for (let i=0;i<firstDow;i++)
+    html+=`<div class="cal-cell other-month"><span class="cal-day-num">${daysInPrev-firstDow+1+i}</span></div>`;
+  for (let d=1;d<=daysInMon;d++) {
+    const ds       = `${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const dayTasks = getTasksForDate(ds);
+    const dow      = new Date(calYear,calMonth,d).getDay();
+    const prog     = getProgressForDate(ds);
+    const hasOverdue= dayTasks.some(t=>isOverdue(t));
+    const allDone   = dayTasks.length>0 && dayTasks.every(t=>isDoneOn(t,ds));
+    const isToday   = ds===today;
+    const isPast    = ds<today;
+    const isSel     = ds===calSelected;
+    const isWeekend = dow===0||dow===6;
+    const MAX=5, shown=dayTasks.slice(0,MAX), overflow=dayTasks.length-MAX;
+    const dotsHtml = shown.map(t=>`<div class="cal-dot ${isDoneOn(t,ds)?'done-dot':''}" style="background:${taskDotColor(t)}" title="${esc(t.name)}${isDoneOn(t,ds)?' ✓':''}"></div>`).join('')
+      + (overflow>0?`<span class="cal-more">+${overflow}</span>`:'');
+    let barClass='p0';
+    if (prog.total>0) barClass = prog.pct===100?'pfull':prog.pct>=50?'phalf':'plow';
+    const barHtml = prog.total>0
+      ? `<div class="cal-cell-prog"><div class="cal-cell-prog-fill ${barClass}" style="width:${prog.pct}%"></div></div>`
+      : `<div class="cal-cell-prog"></div>`;
+    const cls=[
+      isPast&&!isToday?'past-day':'', isToday?'today':'', isSel?'selected':'',
+      isWeekend?'weekend':'', hasOverdue&&!isToday?'has-overdue':'', allDone?'all-done':''
+    ].filter(Boolean).join(' ');
+    html+=`<div class="cal-cell ${cls}" onclick="selectDate('${ds}')">
+      <span class="cal-day-num">${d}${allDone?'<span class="cal-all-done-icon">✓</span>':''}</span>
+      <div class="cal-dots">${dotsHtml}</div>${barHtml}
+    </div>`;
+  }
+  const totalCells=firstDow+daysInMon;
+  const trailing=totalCells%7===0?0:7-(totalCells%7);
+  for (let d=1;d<=trailing;d++)
+    html+=`<div class="cal-cell other-month"><span class="cal-day-num">${d}</span></div>`;
+  document.getElementById('cal-grid').innerHTML=html;
+  renderDayDetail();
+}
+
+function renderDayDetail() {
+  const panel=document.getElementById('cal-detail-panel');
+  if (!calSelected) { panel.innerHTML=''; return; }
+  const dayTasks = getTasksForDate(calSelected);
+  const prog     = getProgressForDate(calSelected);
+  const isToday  = calSelected===todayStr();
+  const habits   = dayTasks.filter(t=>t.cat==='habit');
+  const repeats  = dayTasks.filter(t=>t.cat==='repeat');
+  const onetime  = dayTasks.filter(t=>t.cat==='onetime');
+  const progColor= prog.pct===100?'var(--habit)':prog.pct>=50?'var(--important)':'var(--accent)';
+  const sel=calSelected;
+  function groupHtml(title, items, borderColor) {
+    if (!items.length) return '';
+    const cards=items.map(t=>{
+      const done=isDoneOn(t,sel); let meta='';
+      if (t.cat==='habit'||t.cat==='repeat') {
+        meta+=`<span class="badge badge-freq">↻ ${freqText(t.freq)}</span>`;
+        if (done) meta+=`<span class="badge badge-done-today">✓ Done</span>`;
+        if (!done) meta+=`<span class="badge-recur-note">Tap to mark done for this day</span>`;
+      }
+      if (t.cat==='onetime') {
+        if (isOverdue(t))    meta+=`<span class="badge badge-overdue">⚠ Overdue</span>`;
+        else if (t.deadline) meta+=`<span class="badge badge-deadline">📅 ${fmtDateShort(t.deadline)}</span>`;
+        if (t.priority==='urgent'   ||t.priority==='both') meta+=`<span class="badge badge-urgent">⚡ Urgent</span>`;
+        if (t.priority==='important'||t.priority==='both') meta+=`<span class="badge badge-important">★ Important</span>`;
+      }
+      return `<div class="cal-task-item ${done?'done-today':''}" style="border-left:3px solid ${borderColor}">
+        <div class="task-check ${done?'done-today':''}" onclick="toggleDone(${t.id},'${sel}')">${checkSvg()}</div>
+        <div class="task-body"><div class="cal-task-name">${esc(t.name)}</div>
+          ${meta?`<div class="task-meta" style="margin-top:4px">${meta}</div>`:''}
+        </div>
+        <button class="task-del" onclick="deleteTask(${t.id})" title="Delete">✕</button>
+      </div>`;
+    }).join('');
+    return `<div><div class="cal-group-title" style="border-left-color:${borderColor}">${title}</div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-top:7px">${cards}</div></div>`;
+  }
+  const bodyHtml = dayTasks.length===0
+    ? '<div class="cal-detail-empty">No tasks scheduled for this day.</div>'
+    : [groupHtml('Habits',habits,'var(--habit)'),groupHtml('Recurring Tasks',repeats,'var(--repeat)'),groupHtml('One-Time Tasks',onetime,'var(--accent)')].join('');
+  const progLabel = prog.total ? `${prog.done} of ${prog.total} completed` : 'No scheduled tasks';
+  panel.innerHTML=`<div class="cal-detail">
+    <div class="cal-detail-header">
+      <div class="cal-detail-left">
+        <div class="cal-detail-date">${fmtDateFull(calSelected)}${isToday?'<em>— Today</em>':''}</div>
+        <div class="day-prog-row">
+          <span class="day-prog-label">${progLabel}</span>
+          ${prog.total?`<div class="day-prog-bar-bg"><div class="day-prog-bar-fill" style="width:${prog.pct}%;background:${progColor}"></div></div>
+          <span class="day-prog-pct" style="color:${progColor}">${prog.pct}%</span>`:''}
+        </div>
+      </div>
+      <button class="cal-detail-close" onclick="calSelected=null;renderCalendar()">✕</button>
+    </div>
+    <div class="cal-detail-body">${bodyHtml}</div>
+  </div>`;
+}
+
+// ── Archive renderer ───────────────────────────────────
+function renderArchive() {
+  const container=document.getElementById('archive-list-container');
+  if (!archive.length) {
+    container.innerHTML='<div class="archive-empty">No archived tasks yet.<br>All tasks are automatically archived when crossed off.</div>';
+    return;
+  }
+  const groups={};
+  archive.forEach(a=>{
+    const key=new Date(a.archivedAt).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    if (!groups[key]) groups[key]=[];
+    groups[key].push(a);
+  });
+  container.innerHTML=Object.entries(groups).reverse().map(([date,items])=>{
+    const cards=items.map((a,idx)=>{
+      let badges='';
+      const icon=a.cat==='habit'?'🔁':a.cat==='repeat'?'↻':'✓';
+      if (a.deadline) badges+=`<span class="badge badge-deadline">📅 ${fmtDateShort(a.deadline)}</span>`;
+      if (a.priority==='urgent'   ||a.priority==='both') badges+=`<span class="badge badge-urgent">⚡ Urgent</span>`;
+      if (a.priority==='important'||a.priority==='both') badges+=`<span class="badge badge-important">★ Important</span>`;
+      badges+=`<span class="badge badge-cat">${a.cat==='habit'?'Habit':a.cat==='repeat'?'Recurring':'One-Time'}</span>`;
+      if (a.freq) badges+=`<span class="badge badge-freq">↻ ${freqText(a.freq)}</span>`;
+      if (a.archivedForDate) badges+=`<span class="badge badge-done-today">✓ ${fmtDateShort(a.archivedForDate)}</span>`;
+      const time=new Date(a.archivedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      // use archive index for deletion since recurring items share task ids
+      const archIdx = archive.indexOf(a);
+      return `<div class="archive-card">
+        <span class="archive-icon">${icon}</span>
+        <div class="task-body">
+          <div class="task-text">${esc(a.name)}</div>
+          <div class="task-meta">${badges}<span class="badge badge-cat">${time}</span></div>
+        </div>
+        <button class="task-del" onclick="deleteArchivedByIndex(${archIdx})" title="Remove">✕</button>
+      </div>`;
+    }).join('');
+    return `<div class="archive-group">
+      <div class="archive-date-label">${date}</div>
+      <div class="archive-list">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  POMODORO / FOCUS TIMER
+// ══════════════════════════════════════════════════════
+const FOCUS_DURATIONS = { focus:25*60, short:5*60, long:15*60 };
+const RING_CIRCUMFERENCE = 2 * Math.PI * 95; // r=95
+let focusMode      = 'focus';    // 'focus' | 'short' | 'long'
+let focusTaskId    = null;       // selected task id
+let focusState     = 'idle';     // 'idle' | 'running' | 'paused' | 'done'
+let focusSecsLeft  = FOCUS_DURATIONS.focus;
+let focusTotalSecs = FOCUS_DURATIONS.focus;
+let focusInterval  = null;
+let pomodoroCount  = 0;
+let focusSessions  = JSON.parse(localStorage.getItem('todo-v122-focus') || '[]');
+
+function setFocusMode(mode) {
+  if (focusState==='running'||focusState==='paused') return; // can't switch while active
+  // reset done state when switching modes
+  if (focusState==='done') {
+    focusState = 'idle';
+    document.getElementById('focus-timer-card').classList.remove('complete-glow');
+  }
+  focusMode = mode;
+  focusTotalSecs = FOCUS_DURATIONS[mode];
+  focusSecsLeft  = focusTotalSecs;
+  ['focus','short','long'].forEach(m => {
+    document.getElementById('fmode-'+m).classList.toggle('active', m===mode);
+  });
+  updateTimerDisplay();
+  updateRing();
+  updateFocusLabel();
+  renderFocusControls(); // re-render controls for new mode
+}
+
+// helper: switch mode AND immediately start — used by done-state buttons
+function startModeAndGo(mode) {
+  focusState = 'idle'; // force reset from 'done'
+  document.getElementById('focus-timer-card').classList.remove('complete-glow');
+  focusMode = mode;
+  focusTotalSecs = FOCUS_DURATIONS[mode];
+  focusSecsLeft  = focusTotalSecs;
+  ['focus','short','long'].forEach(m => {
+    document.getElementById('fmode-'+m).classList.toggle('active', m===mode);
+  });
+  updateTimerDisplay();
+  updateRing();
+  startFocus();
+}
+
+function fmtTimer(s) {
+  const m = Math.floor(s/60), sec = s%60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateTimerDisplay() {
+  document.getElementById('focus-time').textContent = fmtTimer(focusSecsLeft);
+}
+
+function updateRing() {
+  const progress = focusSecsLeft / focusTotalSecs;
+  const offset   = RING_CIRCUMFERENCE * (1 - progress);
+  const ring     = document.getElementById('focus-ring');
+  ring.style.strokeDasharray  = RING_CIRCUMFERENCE;
+  ring.style.strokeDashoffset = offset;
+  ring.classList.remove('mode-short','mode-long','complete');
+  if (focusState==='done') ring.classList.add('complete');
+  else if (focusMode==='short') ring.classList.add('mode-short');
+  else if (focusMode==='long')  ring.classList.add('mode-long');
+}
+
+function updateFocusLabel() {
+  const label = document.getElementById('focus-label');
+  if (focusState==='idle')    label.textContent = 'READY';
+  if (focusState==='running') label.textContent = focusMode==='focus' ? 'FOCUSING' : 'BREAK';
+  if (focusState==='paused')  label.textContent = 'PAUSED';
+  if (focusState==='done')    label.textContent = 'COMPLETE!';
+}
+
+function updatePomoDots() {
+  const dots = document.getElementById('pomo-dots');
+  dots.innerHTML = Array.from({length:4}, (_,i) =>
+    `<div class="pomo-dot ${i<pomodoroCount%4?'filled':''}">${i<pomodoroCount%4?'🍅':''}</div>`
+  ).join('');
+}
+
+function renderFocusControls() {
+  const box = document.getElementById('focus-controls');
+  if (focusState==='idle') {
+    const icon = focusMode==='focus'?'🍅':focusMode==='short'?'☕':'🌿';
+    const label = focusMode==='focus'?'Start Focus':focusMode==='short'?'Start Short Break':'Start Long Break';
+    const style = focusMode==='long'?'background:linear-gradient(135deg,var(--repeat),#60a5fa)':
+                  focusMode==='short'?'background:linear-gradient(135deg,var(--habit),#34d399)':'';
+    box.innerHTML = `<button class="focus-ctrl-btn focus-ctrl-start" style="${style}" onclick="startFocus()">
+      ${icon} ${label}</button>`;
+  } else if (focusState==='running') {
+    box.innerHTML = `<button class="focus-ctrl-btn focus-ctrl-pause" onclick="pauseFocus()">⏸ Pause</button>
+      <button class="focus-ctrl-btn focus-ctrl-stop" onclick="stopFocus()">✕ Stop</button>
+      <button class="focus-ctrl-btn focus-ctrl-extra" onclick="addFiveMin()">+5 min</button>`;
+  } else if (focusState==='paused') {
+    box.innerHTML = `<button class="focus-ctrl-btn focus-ctrl-start" onclick="resumeFocus()">▶ Resume</button>
+      <button class="focus-ctrl-btn focus-ctrl-stop" onclick="stopFocus()">✕ Stop</button>`;
+  } else if (focusState==='done') {
+    if (focusMode==='focus') {
+      // after focus session: offer short break, long break, or restart focus
+      const suggestLong = pomodoroCount > 0 && pomodoroCount % 4 === 0;
+      box.innerHTML = `
+        <button class="focus-ctrl-btn focus-ctrl-start" style="${suggestLong?'opacity:.7':''}"
+          onclick="startModeAndGo('short')">☕ Short Break</button>
+        <button class="focus-ctrl-btn focus-ctrl-start" style="background:linear-gradient(135deg,var(--repeat),#60a5fa);${suggestLong?'':'opacity:.7'}"
+          onclick="startModeAndGo('long')">🌿 Long Break</button>
+        <button class="focus-ctrl-btn focus-ctrl-extra" onclick="resetFocus()">↺ Reset</button>`;
+    } else {
+      // after break: offer to start focus
+      box.innerHTML = `
+        <button class="focus-ctrl-btn focus-ctrl-start"
+          onclick="startModeAndGo('focus')">🍅 Start Focus</button>
+        <button class="focus-ctrl-btn focus-ctrl-extra" onclick="resetFocus()">↺ Reset</button>`;
+    }
+  }
+}
+
+function startFocus() {
+  if (focusMode==='focus' && !focusTaskId) {
+    // auto-select first undone task
+    const today = todayStr();
+    const undone = tasks.find(t => !isDoneOn(t, today));
+    if (undone) selectFocusTask(undone.id);
+    else {
+      document.getElementById('focus-task-display').innerHTML = '<em>No undone tasks — add a task first</em>';
+      return;
+    }
+  }
+  // update display text for break modes
+  if (focusMode==='short') {
+    document.getElementById('focus-task-display').innerHTML = '☕ Short Break — relax for 5 minutes';
+  } else if (focusMode==='long') {
+    document.getElementById('focus-task-display').innerHTML = '🌿 Long Break — recharge for 15 minutes';
+  }
+  focusState = 'running';
+  focusInterval = setInterval(focusTick, 1000);
+  renderFocusControls();
+  updateFocusLabel();
+}
+
+function pauseFocus() {
+  focusState = 'paused';
+  clearInterval(focusInterval);
+  focusInterval = null;
+  renderFocusControls();
+  updateFocusLabel();
+}
+
+function resumeFocus() {
+  focusState = 'running';
+  focusInterval = setInterval(focusTick, 1000);
+  renderFocusControls();
+  updateFocusLabel();
+}
+
+function stopFocus() {
+  clearInterval(focusInterval);
+  focusInterval = null;
+  focusState = 'idle';
+  focusSecsLeft = FOCUS_DURATIONS[focusMode];
+  focusTotalSecs = FOCUS_DURATIONS[focusMode];
+  updateTimerDisplay();
+  updateRing();
+  renderFocusControls();
+  updateFocusLabel();
+  document.getElementById('focus-timer-card').classList.remove('complete-glow');
+  document.title = 'Todo V 1.22';
+}
+
+function resetFocus() {
+  stopFocus();
+  // restore task display
+  if (focusTaskId) {
+    const t = tasks.find(t => t.id===focusTaskId);
+    if (t) document.getElementById('focus-task-display').innerHTML = esc(t.name);
+    else { focusTaskId = null; document.getElementById('focus-task-display').innerHTML = '<em>Select a task below to focus on</em>'; }
+  } else {
+    document.getElementById('focus-task-display').innerHTML = '<em>Select a task below to focus on</em>';
+  }
+}
+
+function addFiveMin() {
+  focusSecsLeft  += 5*60;
+  focusTotalSecs += 5*60;
+  updateTimerDisplay();
+  updateRing();
+}
+
+function focusTick() {
+  focusSecsLeft--;
+  if (focusSecsLeft <= 0) {
+    focusSecsLeft = 0;
+    clearInterval(focusInterval);
+    focusInterval = null;
+    focusState = 'done';
+    onFocusComplete();
+  }
+  updateTimerDisplay();
+  updateRing();
+  updateFocusLabel();
+  // update page title with timer
+  if (focusState==='running'||focusState==='paused') {
+    document.title = `${fmtTimer(focusSecsLeft)} — Todo V 1.22`;
+  }
+}
+
+function onFocusComplete() {
+  // play chime
+  playChime();
+
+  // auto-mark task done if focus mode
+  if (focusMode==='focus' && focusTaskId) {
+    const t = tasks.find(t => t.id===focusTaskId);
+    if (t) {
+      const today = todayStr();
+      if (t.cat==='onetime') {
+        t.done = true;
+      } else {
+        if (!Array.isArray(t.completedDates)) t.completedDates = [];
+        if (!t.completedDates.includes(today)) t.completedDates.push(today);
+      }
+      save();
+      render();
+    }
+    pomodoroCount++;
+  }
+
+  // log session
+  const sessionDuration = focusTotalSecs - focusSecsLeft;
+  const taskName = focusTaskId ? (tasks.find(t=>t.id===focusTaskId)||{}).name||'Unknown' : 'Break';
+  focusSessions.push({
+    task: taskName,
+    mode: focusMode,
+    duration: focusTotalSecs,
+    completedAt: new Date().toISOString()
+  });
+  // keep only today's sessions
+  const todayPrefix = todayStr();
+  focusSessions = focusSessions.filter(s => s.completedAt.startsWith(todayPrefix));
+  localStorage.setItem('todo-v122-focus', JSON.stringify(focusSessions));
+
+  // visual
+  document.getElementById('focus-timer-card').classList.add('complete-glow');
+  document.title = 'Done! — Todo V 1.22';
+  updatePomoDots();
+  renderFocusControls();
+  updateFocusLabel();
+  renderFocusLog();
+  renderFocusTaskList();
+
+  // update display text with completion message
+  if (focusMode==='focus') {
+    const taskName = focusTaskId ? (tasks.find(t=>t.id===focusTaskId)||{}).name||'' : '';
+    const suggestLong = pomodoroCount > 0 && pomodoroCount % 4 === 0;
+    const suggestion = suggestLong
+      ? '🌿 Great job! 4 sessions done — take a long break!'
+      : '✅ Task marked done! Take a break.';
+    document.getElementById('focus-task-display').innerHTML =
+      `<strong style="color:var(--habit)">${suggestion}</strong>` +
+      (taskName ? `<br><span style="font-size:.82rem;color:var(--muted)">${esc(taskName)}</span>` : '');
+  } else {
+    document.getElementById('focus-task-display').innerHTML =
+      '<strong style="color:var(--habit)">☀️ Break complete — ready to focus!</strong>';
+  }
+}
+
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + i*0.22);
+      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + i*0.22 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.22 + 0.6);
+      osc.start(ctx.currentTime + i*0.22);
+      osc.stop(ctx.currentTime + i*0.22 + 0.7);
+    });
+  } catch(e) {}
+}
+
+function selectFocusTask(id) {
+  focusTaskId = id;
+  const t = tasks.find(t => t.id===id);
+  if (t) {
+    document.getElementById('focus-task-display').innerHTML = esc(t.name);
+  }
+  renderFocusTaskList();
+}
+
+function renderFocusTab() {
+  renderFocusTaskList();
+  renderFocusLog();
+  updateTimerDisplay();
+  updateRing();
+  updatePomoDots();
+  renderFocusControls();
+}
+
+function renderFocusTaskList() {
+  const list = document.getElementById('focus-task-list');
+  const today = todayStr();
+  // show all undone tasks for today
+  const todayTasks = [
+    ...getTasksForDate(today).filter(t => t.cat!=='onetime' && !isDoneOn(t,today)),
+    ...tasks.filter(t => t.cat==='onetime' && !t.done)
+  ];
+  // remove dupes
+  const seen = new Set();
+  const unique = todayTasks.filter(t => { if(seen.has(t.id)) return false; seen.add(t.id); return true; });
+
+  if (!unique.length) {
+    list.innerHTML = '<div class="focus-empty-picker">All tasks done! Add new tasks or take a break.</div>';
+    document.getElementById('tb-focus').textContent = '0';
+    return;
+  }
+  document.getElementById('tb-focus').textContent = unique.length;
+  list.innerHTML = unique.map(t => {
+    const catClass = t.cat==='habit'?'ft-habit':t.cat==='repeat'?'ft-repeat':'ft-onetime';
+    const badgeClass = t.cat==='habit'?'ft-cat-habit':t.cat==='repeat'?'ft-cat-repeat':'ft-cat-onetime';
+    const catLabel = t.cat==='habit'?'Habit':t.cat==='repeat'?'Recurring':'One-Time';
+    const active = t.id===focusTaskId ? 'ft-active' : '';
+    return `<div class="focus-task-item ${catClass} ${active}" onclick="selectFocusTask(${t.id})">
+      <span class="ft-name">${esc(t.name)}</span>
+      <span class="ft-cat-badge ${badgeClass}">${catLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderFocusLog() {
+  const list = document.getElementById('focus-log-list');
+  const todayPrefix = todayStr();
+  const todaySessions = focusSessions.filter(s => s.completedAt.startsWith(todayPrefix));
+  if (!todaySessions.length) {
+    list.innerHTML = '<div class="focus-log-empty">No focus sessions yet today. Pick a task and start!</div>';
+    return;
+  }
+  list.innerHTML = todaySessions.reverse().map(s => {
+    const icon = s.mode==='focus' ? '🍅' : s.mode==='short' ? '☕' : '🌿';
+    const mins = Math.round(s.duration/60);
+    const time = new Date(s.completedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="focus-log-item">
+      <span class="fl-icon">${icon}</span>
+      <span class="fl-name">${esc(s.task)}</span>
+      <span class="fl-duration">${mins} min</span>
+      <span class="fl-time">${time}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAG & DROP REORDER
+// ══════════════════════════════════════════════════════
+let dragSrcId = null;
+let lastMouseDownEl = null;
+
+// track what was actually clicked (fires before dragstart)
+document.addEventListener('mousedown', function(e) {
+  lastMouseDownEl = e.target;
+});
+
+document.addEventListener('dragstart', function(e) {
+  const card = e.target.closest('.task-card[draggable]');
+  if (!card) return;
+  // only allow drag when mousedown originated on the drag handle
+  if (!lastMouseDownEl || !lastMouseDownEl.closest('.drag-handle')) {
+    e.preventDefault(); return;
+  }
+  dragSrcId = Number(card.dataset.taskId);
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(dragSrcId));
+  // set a minimal drag image so the ghost isn't huge
+  if (e.dataTransfer.setDragImage) {
+    const clone = card.cloneNode(true);
+    clone.style.width = card.offsetWidth + 'px';
+    clone.style.position = 'absolute';
+    clone.style.top = '-9999px';
+    clone.style.opacity = '0.85';
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, 20, 20);
+    setTimeout(() => clone.remove(), 0);
+  }
+});
+
+document.addEventListener('dragend', function(e) {
+  const card = e.target.closest('.task-card[draggable]');
+  if (card) card.classList.remove('dragging');
+  // clear all indicators
+  document.querySelectorAll('.drag-over-above,.drag-over-below').forEach(
+    el => el.classList.remove('drag-over-above','drag-over-below')
+  );
+  dragSrcId = null;
+  lastMouseDownEl = null;
+});
+
+document.addEventListener('dragover', function(e) {
+  const card = e.target.closest('.task-card[draggable]');
+  if (!card || !dragSrcId) return;
+  const targetId = Number(card.dataset.taskId);
+  if (targetId === dragSrcId) return;
+  // ensure same category
+  const srcTask = tasks.find(t => t.id===dragSrcId);
+  const tgtTask = tasks.find(t => t.id===targetId);
+  if (!srcTask || !tgtTask || srcTask.cat !== tgtTask.cat) return;
+
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+
+  // determine if above or below midpoint
+  const rect = card.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+  const above = e.clientY < midY;
+
+  // clear old indicators in this list
+  card.parentElement.querySelectorAll('.drag-over-above,.drag-over-below').forEach(
+    el => el.classList.remove('drag-over-above','drag-over-below')
+  );
+  card.classList.add(above ? 'drag-over-above' : 'drag-over-below');
+});
+
+document.addEventListener('dragleave', function(e) {
+  const card = e.target.closest('.task-card[draggable]');
+  if (!card) return;
+  // only remove indicator if we actually left the card bounds
+  const rect = card.getBoundingClientRect();
+  if (e.clientX < rect.left || e.clientX > rect.right ||
+      e.clientY < rect.top  || e.clientY > rect.bottom) {
+    card.classList.remove('drag-over-above','drag-over-below');
+  }
+});
+
+document.addEventListener('drop', function(e) {
+  e.preventDefault();
+  const card = e.target.closest('.task-card[draggable]');
+  if (!card || !dragSrcId) return;
+  const targetId = Number(card.dataset.taskId);
+  if (targetId === dragSrcId) return;
+
+  const srcTask = tasks.find(t => t.id===dragSrcId);
+  const tgtTask = tasks.find(t => t.id===targetId);
+  if (!srcTask || !tgtTask || srcTask.cat !== tgtTask.cat) return;
+
+  // determine drop position
+  const rect = card.getBoundingClientRect();
+  const above = e.clientY < rect.top + rect.height / 2;
+
+  // get all tasks of same category, sorted by current sortOrder
+  const catTasks = tasks.filter(t => t.cat === srcTask.cat).sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0));
+
+  // remove src from list
+  const filtered = catTasks.filter(t => t.id !== srcTask.id);
+
+  // find target index in filtered
+  let insertIdx = filtered.findIndex(t => t.id === targetId);
+  if (!above) insertIdx++;
+
+  // insert src at new position
+  filtered.splice(insertIdx, 0, srcTask);
+
+  // reassign sortOrder
+  filtered.forEach((t, i) => t.sortOrder = i);
+
+  save();
+
+  // clear indicators
+  document.querySelectorAll('.drag-over-above,.drag-over-below').forEach(
+    el => el.classList.remove('drag-over-above','drag-over-below')
+  );
+
+  render();
+});
+
+// ══════════════════════════════════════════════════════
+//  ANALYTICS / REVIEW
+// ══════════════════════════════════════════════════════
+let analyticsRange = 7;
+
+function setAnalyticsRange(days) {
+  analyticsRange = days;
+  [7,14,30].forEach(d => {
+    document.getElementById('ar-'+d).classList.toggle('active', d===days);
+  });
+  renderAnalytics();
+}
+
+function getDateRange(days) {
+  const dates = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(dateToStr(d));
+  }
+  return dates;
+}
+
+function renderAnalytics() {
+  const dates = getDateRange(analyticsRange);
+  const today = todayStr();
+
+  // compute daily data
+  const dailyData = dates.map(ds => {
+    const prog = getProgressForDate(ds);
+    const dayTasks = getTasksForDate(ds);
+    return { date:ds, pct:prog.pct, done:prog.done, total:prog.total, tasks:dayTasks };
+  });
+
+  // summary stats
+  const withTasks = dailyData.filter(d => d.total > 0);
+  const avgPct = withTasks.length ? Math.round(withTasks.reduce((s,d)=>s+d.pct,0)/withTasks.length) : 0;
+  const bestDay = withTasks.reduce((b,d) => d.pct > b.pct ? d : b, {pct:0,date:''});
+  const worstDay = withTasks.length ? withTasks.reduce((w,d) => d.pct < w.pct ? d : w, {pct:101,date:''}) : {pct:0,date:''};
+  const perfectDays = withTasks.filter(d => d.pct===100).length;
+  const totalDone = dailyData.reduce((s,d) => s+d.done, 0);
+
+  // current streak (consecutive days with 100%)
+  let currentStreak = 0;
+  for (let i = dailyData.length - 1; i >= 0; i--) {
+    if (dailyData[i].total > 0 && dailyData[i].pct === 100) currentStreak++;
+    else if (dailyData[i].total > 0) break;
+  }
+
+  const summaryEl = document.getElementById('analytics-summary');
+  summaryEl.innerHTML = `
+    <div class="a-stat a-avg">
+      <div class="a-val">${avgPct}%</div>
+      <div class="a-lbl">Avg Completion</div>
+    </div>
+    <div class="a-stat a-best">
+      <div class="a-val">${bestDay.pct}%</div>
+      <div class="a-lbl">Best Day${bestDay.date ? ' · '+fmtDateShort(bestDay.date) : ''}</div>
+    </div>
+    <div class="a-stat a-worst">
+      <div class="a-val">${worstDay.pct > 100 ? 0 : worstDay.pct}%</div>
+      <div class="a-lbl">Lowest Day${worstDay.date && worstDay.pct<=100 ? ' · '+fmtDateShort(worstDay.date) : ''}</div>
+    </div>
+    <div class="a-stat a-streak">
+      <div class="a-val">${perfectDays}</div>
+      <div class="a-lbl">100% Days</div>
+    </div>
+    <div class="a-stat a-total">
+      <div class="a-val">${totalDone}</div>
+      <div class="a-lbl">Tasks Done</div>
+    </div>
+  `;
+
+  // bar chart
+  const chartEl = document.getElementById('analytics-chart');
+  const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const maxHeight = 152; // pixels
+
+  chartEl.innerHTML = dailyData.map(d => {
+    const [y,m,day] = d.date.split('-').map(Number);
+    const dateObj = new Date(y,m-1,day);
+    const dow = dateObj.getDay();
+    const isToday = d.date === today;
+    const isWeekend = dow===0 || dow===6;
+
+    let barClass = 'bar-zero';
+    if (d.total > 0) {
+      if (d.pct === 100) barClass = 'bar-full';
+      else if (d.pct >= 70) barClass = 'bar-high';
+      else if (d.pct >= 40) barClass = 'bar-mid';
+      else barClass = 'bar-low';
+    }
+    if (isToday) barClass += ' bar-today';
+
+    const barH = d.total > 0 ? Math.max(4, (d.pct / 100) * maxHeight) : 2;
+    const tooltip = `${fmtDateShort(d.date)}: ${d.done}/${d.total} (${d.pct}%)`;
+
+    let label = '';
+    if (analyticsRange <= 14) {
+      label = DAYS_SHORT[dow] + '<br>' + day;
+    } else {
+      // for 30 days show every 3rd label
+      const idx = dailyData.indexOf(d);
+      label = (idx % 3 === 0 || isToday) ? (day + '/' + (m)) : '';
+    }
+
+    const lblClass = isToday ? 'lbl-today' : isWeekend ? 'lbl-weekend' : '';
+
+    return `<div class="chart-bar-wrap">
+      <div class="chart-bar ${barClass}" style="height:${barH}px" data-tooltip="${tooltip}"></div>
+      <div class="chart-bar-label ${lblClass}">${label}</div>
+    </div>`;
+  }).join('');
+
+  // category breakdown
+  const breakdownEl = document.getElementById('analytics-breakdown');
+  // accumulate totals over the period
+  let habitTotal=0, habitDone=0, repeatTotal=0, repeatDone=0, onetimeTotal=0, onetimeDone=0;
+  dailyData.forEach(d => {
+    d.tasks.forEach(t => {
+      if (t.cat==='habit') { habitTotal++; if(isDoneOn(t,d.date)) habitDone++; }
+      else if (t.cat==='repeat') { repeatTotal++; if(isDoneOn(t,d.date)) repeatDone++; }
+      else if (t.cat==='onetime') { onetimeTotal++; if(isDoneOn(t,d.date)) onetimeDone++; }
+    });
+  });
+
+  const cats = [
+    { label:'Habits', done:habitDone, total:habitTotal, color:'var(--habit)' },
+    { label:'Recurring', done:repeatDone, total:repeatTotal, color:'var(--repeat)' },
+    { label:'One-Time', done:onetimeDone, total:onetimeTotal, color:'var(--accent)' },
+  ];
+
+  breakdownEl.innerHTML = cats.map(c => {
+    const pct = c.total ? Math.round(c.done/c.total*100) : 0;
+    return `<div class="breakdown-row">
+      <span class="bd-dot" style="background:${c.color}"></span>
+      <span class="bd-label">${c.label}</span>
+      <div class="bd-bar-bg"><div class="bd-bar-fill" style="width:${pct}%;background:${c.color}"></div></div>
+      <span class="bd-pct" style="color:${c.color}">${pct}%</span>
+      <span class="bd-count">${c.done}/${c.total}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  CALENDAR SYNC — Google & Outlook Integration
+// ══════════════════════════════════════════════════════
+let syncSelectedIds = new Set();
+
+function renderSyncTab() {
+  renderSyncTaskList();
+}
+
+function renderSyncTaskList() {
+  const list = document.getElementById('sync-task-list');
+  const actions = document.getElementById('sync-sel-actions');
+
+  actions.innerHTML = `
+    <button class="sync-sel-btn" onclick="syncSelectAll()">Select All</button>
+    <button class="sync-sel-btn" onclick="syncSelectNone()">Deselect All</button>
+    <button class="sync-sel-btn" onclick="syncSelectCat('habit')">Habits</button>
+    <button class="sync-sel-btn" onclick="syncSelectCat('repeat')">Recurring</button>
+    <button class="sync-sel-btn" onclick="syncSelectCat('onetime')">One-Time</button>
+    <span style="font-size:.7rem;color:var(--muted);margin-left:auto">${syncSelectedIds.size} selected</span>
+  `;
+
+  if (!tasks.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:.82rem;padding:20px;border:1px dashed var(--border2);border-radius:11px">No active tasks to export.</div>';
+    return;
+  }
+
+  list.innerHTML = tasks.map(t => {
+    const checked = syncSelectedIds.has(t.id);
+    const catClass = t.cat==='habit'?'st-habit':t.cat==='repeat'?'st-repeat':'st-onetime';
+    const catLabel = t.cat==='habit'?'Habit':t.cat==='repeat'?'Recurring':'One-Time';
+    const meta = [];
+    if (t.freq) meta.push(freqText(t.freq));
+    if (t.deadline) meta.push('Due: '+fmtDateShort(t.deadline));
+    if (t.priority && t.priority!=='none') meta.push(t.priority);
+
+    return `<div class="sync-task-item ${catClass}" onclick="syncToggle(${t.id})">
+      <div class="sync-cb ${checked?'checked':''}">${checkSvg()}</div>
+      <span class="sync-task-name">${esc(t.name)}</span>
+      <span class="sync-task-meta">${meta.join(' · ')}</span>
+    </div>`;
+  }).join('');
+}
+
+function syncToggle(id) {
+  if (syncSelectedIds.has(id)) syncSelectedIds.delete(id); else syncSelectedIds.add(id);
+  renderSyncTaskList();
+}
+function syncSelectAll() { tasks.forEach(t=>syncSelectedIds.add(t.id)); renderSyncTaskList(); }
+function syncSelectNone() { syncSelectedIds.clear(); renderSyncTaskList(); }
+function syncSelectCat(cat) { tasks.filter(t=>t.cat===cat).forEach(t=>syncSelectedIds.add(t.id)); renderSyncTaskList(); }
+
+// ── ICS date formatting ──
+function icsDate(dateStr, allDay) {
+  if (!dateStr) {
+    const d = new Date();
+    return allDay
+      ? `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`
+      : `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  }
+  const [y,m,d] = dateStr.split('-');
+  return allDay ? `${y}${m}${d}` : `${y}${m}${d}T090000`;
+}
+
+function icsNow() {
+  const d = new Date();
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+// ── RRULE from freq ──
+function freqToRRULE(task) {
+  const f = task.freq;
+  if (f==='daily')    return 'RRULE:FREQ=DAILY';
+  if (f==='weekdays') return 'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
+  if (f==='weekends') return 'RRULE:FREQ=WEEKLY;BYDAY=SA,SU';
+  if (f==='weekly')   return 'RRULE:FREQ=WEEKLY';
+  if (f==='biweekly') return 'RRULE:FREQ=WEEKLY;INTERVAL=2';
+  if (f==='monthly')  return 'RRULE:FREQ=MONTHLY';
+  return '';
+}
+
+// ── Build single ICS event ──
+function taskToICSEvent(t) {
+  const uid = `todo-v122-${t.id}@todoapp`;
+  const stamp = icsNow();
+  const summary = t.name.replace(/[,;\\]/g, '\\$&');
+  const desc = [];
+  if (t.cat) desc.push('Category: ' + (t.cat==='habit'?'Habit':t.cat==='repeat'?'Recurring':'One-Time'));
+  if (t.freq) desc.push('Frequency: ' + freqText(t.freq));
+  if (t.priority && t.priority!=='none') desc.push('Priority: ' + t.priority);
+  if (t.notes) desc.push('Notes: ' + t.notes.substring(0,200));
+  const description = desc.join('\\n').replace(/[,;]/g, '\\$&');
+
+  let dtstart, dtend, rrule='';
+  if (t.cat==='onetime') {
+    if (t.deadline) {
+      dtstart = `DTSTART;VALUE=DATE:${icsDate(t.deadline,true)}`;
+      const nd = new Date(t.deadline); nd.setDate(nd.getDate()+1);
+      dtend = `DTEND;VALUE=DATE:${icsDate(dateToStr(nd),true)}`;
+    } else {
+      dtstart = `DTSTART;VALUE=DATE:${icsDate(todayStr(),true)}`;
+      const nd = new Date(); nd.setDate(nd.getDate()+1);
+      dtend = `DTEND;VALUE=DATE:${icsDate(dateToStr(nd),true)}`;
+    }
+  } else {
+    dtstart = `DTSTART:${icsDate(todayStr(),false)}`;
+    dtend   = `DTEND:${icsDate(todayStr(),false).replace('T090000','T093000')}`;
+    rrule = freqToRRULE(t);
+  }
+
+  let lines = [
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${stamp}`,
+    dtstart,
+    dtend,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+  ];
+  if (rrule) lines.push(rrule);
+  lines.push('END:VEVENT');
+  return lines.join('\r\n');
+}
+
+// ── Build full ICS file ──
+function buildICS(taskList) {
+  const events = taskList.map(t => taskToICSEvent(t)).join('\r\n');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//TodoApp//V1.22//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    events,
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
+
+function downloadICSFile(content, filename) {
+  const blob = new Blob([content], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── Google Calendar URL builder ──
+function googleCalURL(t) {
+  const base = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+  const title = encodeURIComponent(t.name);
+  let dates;
+  if (t.cat==='onetime' && t.deadline) {
+    const ds = t.deadline.replace(/-/g,'');
+    const nd = new Date(t.deadline); nd.setDate(nd.getDate()+1);
+    dates = `${ds}/${dateToStr(nd).replace(/-/g,'')}`;
+  } else {
+    const today = todayStr().replace(/-/g,'');
+    dates = `${today}T090000/${today}T093000`;
+  }
+  const details = [];
+  if (t.cat) details.push('Category: ' + (t.cat==='habit'?'Habit':t.cat==='repeat'?'Recurring':'One-Time'));
+  if (t.freq) details.push('Frequency: ' + freqText(t.freq));
+  if (t.priority && t.priority!=='none') details.push('Priority: ' + t.priority);
+  const desc = encodeURIComponent(details.join('\n'));
+
+  let recur = '';
+  if (t.cat!=='onetime' && t.freq) {
+    const rr = freqToRRULE(t).replace('RRULE:','');
+    recur = `&recur=RRULE:${encodeURIComponent(rr)}`;
+  }
+  return `${base}&text=${title}&dates=${dates}&details=${desc}${recur}`;
+}
+
+// ── Outlook Web URL builder ──
+function outlookCalURL(t) {
+  const base = 'https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent';
+  const title = encodeURIComponent(t.name);
+  let startdt, enddt;
+  if (t.cat==='onetime' && t.deadline) {
+    startdt = t.deadline + 'T09:00:00';
+    const nd = new Date(t.deadline); nd.setDate(nd.getDate()+1);
+    enddt = dateToStr(nd) + 'T09:00:00';
+  } else {
+    startdt = todayStr() + 'T09:00:00';
+    enddt   = todayStr() + 'T09:30:00';
+  }
+  const details = [];
+  if (t.cat) details.push('Category: ' + (t.cat==='habit'?'Habit':t.cat==='repeat'?'Recurring':'One-Time'));
+  if (t.freq) details.push('Frequency: ' + freqText(t.freq));
+  const body = encodeURIComponent(details.join('\n'));
+  const allday = (t.cat==='onetime') ? '&allday=true' : '';
+  return `${base}&subject=${title}&startdt=${startdt}&enddt=${enddt}&body=${body}${allday}`;
+}
+
+// ── Export actions ──
+function getSelectedTasks() {
+  return tasks.filter(t => syncSelectedIds.has(t.id));
+}
+
+function exportSelectedGoogle() {
+  const sel = getSelectedTasks();
+  if (!sel.length) { alert('Select at least one task.'); return; }
+  sel.forEach((t,i) => {
+    setTimeout(() => window.open(googleCalURL(t), '_blank'), i * 600);
+  });
+}
+
+function exportSelectedOutlook() {
+  const sel = getSelectedTasks();
+  if (!sel.length) { alert('Select at least one task.'); return; }
+  sel.forEach((t,i) => {
+    setTimeout(() => window.open(outlookCalURL(t), '_blank'), i * 600);
+  });
+}
+
+function downloadICS(provider) {
+  const sel = getSelectedTasks();
+  if (!sel.length) { alert('Select at least one task.'); return; }
+  downloadICSFile(buildICS(sel), `todo-tasks-${provider}.ics`);
+}
+
+function exportAllGoogle() {
+  if (!tasks.length) return;
+  tasks.forEach((t,i) => {
+    setTimeout(() => window.open(googleCalURL(t), '_blank'), i * 600);
+  });
+}
+
+function exportAllOutlook() {
+  if (!tasks.length) return;
+  tasks.forEach((t,i) => {
+    setTimeout(() => window.open(outlookCalURL(t), '_blank'), i * 600);
+  });
+}
+
+function downloadICSAll() {
+  if (!tasks.length) return;
+  downloadICSFile(buildICS(tasks), 'todo-all-tasks.ics');
+}
+
+// ── Init ───────────────────────────────────────────────
+document.getElementById('inp-name').addEventListener('keydown', e => {
+  if (e.key==='Enter') addTask();
+});
+renderQuote(quoteIndex);
+render();
+// init ring dasharray
+document.getElementById('focus-ring').style.strokeDasharray = RING_CIRCUMFERENCE;
+document.getElementById('focus-ring').style.strokeDashoffset = 0;
+</script>
+</body>
+</html>
