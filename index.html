@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Todo V 1.22</title>
+  <title>Todo V 1.23</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1162,13 +1162,174 @@
       .quote-body { flex-direction:column; gap:6px; }
       .quote-mark { font-size:2.2rem; }
     }
+
+    /* ══════════════════════════════════════════
+       AUTH / LOGIN OVERLAY
+    ══════════════════════════════════════════ */
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      background-image: radial-gradient(ellipse at 15% 10%, rgba(79,110,247,.08) 0%, transparent 55%),
+                        radial-gradient(ellipse at 85% 90%, rgba(5,150,105,.07) 0%, transparent 50%);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .4s, visibility .4s;
+    }
+    .auth-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px 40px;
+      max-width: 420px; width: 90%;
+      box-shadow: 0 8px 40px rgba(15,23,42,.1), 0 2px 12px rgba(15,23,42,.06);
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .auth-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--habit));
+      border-radius: 20px 20px 0 0;
+    }
+
+    .auth-logo {
+      font-size: 3rem; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; font-weight: 900;
+    }
+    .auth-title {
+      font-size: 1.6rem; font-weight: 800; color: var(--text);
+      margin-bottom: 6px;
+    }
+    .auth-subtitle {
+      font-size: .88rem; color: var(--muted); margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .btn-google {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: 12px; padding: 14px 32px;
+      font-size: .95rem; font-weight: 700; color: var(--text);
+      cursor: pointer; transition: all .2s;
+      box-shadow: 0 2px 8px rgba(15,23,42,.06);
+      width: 100%; justify-content: center;
+    }
+    .btn-google:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(79,110,247,.15);
+      transform: translateY(-1px);
+    }
+    .btn-google svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--muted); font-size: .78rem;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .btn-guest {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 24px;
+      font-size: .85rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; transition: all .2s;
+      width: 100%; justify-content: center;
+    }
+    .btn-guest:hover {
+      background: rgba(var(--accent-rgb),.06);
+      color: var(--text);
+    }
+
+    .auth-footer {
+      margin-top: 24px; font-size: .72rem; color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* User bar (shown when logged in) */
+    .user-bar {
+      display: flex; align-items: center; gap: 10px;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+    .user-bar.hidden { display: none; }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid var(--border); object-fit: cover;
+    }
+    .user-name {
+      font-size: .82rem; font-weight: 600; color: var(--text);
+    }
+    .btn-signout {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 14px;
+      font-size: .73rem; font-weight: 700; color: var(--muted);
+      cursor: pointer; transition: all .18s;
+    }
+    .btn-signout:hover {
+      background: rgba(220,38,38,.08); color: var(--urgent);
+      border-color: rgba(220,38,38,.3);
+    }
+
+    .auth-loading {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 12px; color: var(--muted); font-size: .85rem;
+    }
+    .auth-spinner {
+      width: 20px; height: 20px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: authSpin .7s linear infinite;
+    }
+    @keyframes authSpin { to { transform: rotate(360deg); } }
+
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-<div class="app">
+
+<!-- Auth Login Overlay -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">✓</div>
+    <div class="auth-title">Welcome to Todo</div>
+    <div class="auth-subtitle">Sign in to sync your tasks across devices and keep your data safe in the cloud</div>
+
+    <button class="btn-google" id="btn-google-signin" onclick="googleSignIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="auth-divider">or</div>
+
+    <button class="btn-guest" onclick="guestMode()">
+      👤 Continue as Guest
+    </button>
+
+    <div class="auth-footer">
+      Guest mode saves data locally on this device only.<br>
+      Sign in with Google to sync across all your devices.
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none;">
+
+  <!-- User Bar -->
+  <div class="user-bar hidden" id="user-bar">
+    <img class="user-avatar" id="user-avatar" src="" alt="" />
+    <span class="user-name" id="user-name"></span>
+    <button class="btn-signout" onclick="signOutUser()">Sign Out</button>
+  </div>
 
   <header>
-    <h1>Todo <span>V 1.22</span></h1>
+    <h1>Todo <span>V 1.23</span></h1>
     <p>Habits · Recurring · One-Time · Eisenhower Matrix · Calendar · Per-Day Progress · Daily Quote</p>
   </header>
 
@@ -1559,6 +1720,190 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════
+//  FIREBASE CONFIG & AUTH
+// ══════════════════════════════════════════════════════
+
+// ── PASTE YOUR FIREBASE CONFIG HERE ──
+// Go to console.firebase.google.com → Your project → Project settings → Web app
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+const FIREBASE_ENABLED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+let db = null;
+let currentUser = null;
+let isGuestMode = false;
+let _syncDebounce = null;
+
+if (FIREBASE_ENABLED) {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+}
+
+// Google Sign-In
+function googleSignIn() {
+  if (!FIREBASE_ENABLED) {
+    showToast('Firebase not configured yet. Using guest mode.', 'warning');
+    guestMode();
+    return;
+  }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  document.getElementById('btn-google-signin').disabled = true;
+  document.getElementById('btn-google-signin').innerHTML = '<div class="auth-spinner"></div> Signing in...';
+  firebase.auth().signInWithPopup(provider).catch(err => {
+    console.error('Sign-in error:', err);
+    showToast('Sign-in failed: ' + err.message, 'error');
+    document.getElementById('btn-google-signin').disabled = false;
+    document.getElementById('btn-google-signin').innerHTML = '<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Sign in with Google';
+  });
+}
+
+// Guest mode (localStorage only)
+function guestMode() {
+  isGuestMode = true;
+  currentUser = null;
+  hideAuthOverlay();
+  loadLocalData();
+  initApp();
+}
+
+// Sign out
+function signOutUser() {
+  if (FIREBASE_ENABLED && !isGuestMode) {
+    firebase.auth().signOut();
+  } else {
+    currentUser = null;
+    isGuestMode = false;
+    tasks = [];
+    archive = [];
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    document.getElementById('user-bar').classList.add('hidden');
+  }
+}
+
+// Auth state listener
+if (FIREBASE_ENABLED) {
+  firebase.auth().onAuthStateChanged(async user => {
+    if (user) {
+      currentUser = user;
+      isGuestMode = false;
+      hideAuthOverlay();
+      showUserBar(user);
+      await loadCloudData(user.uid);
+      initApp();
+    } else {
+      currentUser = null;
+      // Show login screen if not in guest mode
+      if (!isGuestMode) {
+        document.getElementById('main-app').style.display = 'none';
+        document.getElementById('auth-overlay').classList.remove('hidden');
+        document.getElementById('user-bar').classList.add('hidden');
+      }
+    }
+  });
+} else {
+  // No Firebase — auto guest mode on page load
+  guestMode();
+}
+
+function hideAuthOverlay() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('main-app').style.display = '';
+}
+
+function showUserBar(user) {
+  const bar = document.getElementById('user-bar');
+  bar.classList.remove('hidden');
+  document.getElementById('user-avatar').src = user.photoURL || '';
+  document.getElementById('user-avatar').style.display = user.photoURL ? '' : 'none';
+  document.getElementById('user-name').textContent = user.displayName || user.email || 'User';
+}
+
+// ── Cloud Data (Firestore) ───────────────────────────
+async function loadCloudData(uid) {
+  if (!db) return loadLocalData();
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      tasks   = data.tasks   || [];
+      archive = data.archive || [];
+      focusSessions = data.focusSessions || [];
+      // Also cache locally
+      localStorage.setItem('todo-v123-tasks',   JSON.stringify(tasks));
+      localStorage.setItem('todo-v123-archive', JSON.stringify(archive));
+      localStorage.setItem('todo-v123-focus',   JSON.stringify(focusSessions));
+    } else {
+      // New user — check if they have local data to migrate
+      loadLocalData();
+      await saveToCloud(uid);
+    }
+  } catch (err) {
+    console.error('Cloud load failed, using local:', err);
+    loadLocalData();
+  }
+}
+
+function loadLocalData() {
+  tasks   = JSON.parse(localStorage.getItem('todo-v123-tasks')   || '[]');
+  archive = JSON.parse(localStorage.getItem('todo-v123-archive') || '[]');
+}
+
+async function saveToCloud(uid) {
+  if (!db || !uid) return;
+  try {
+    await db.collection('users').doc(uid).set({
+      tasks:         tasks,
+      archive:       archive,
+      focusSessions: focusSessions || [],
+      lastUpdated:   new Date().toISOString()
+    }, { merge: true });
+  } catch (err) {
+    console.error('Cloud save failed:', err);
+  }
+}
+
+function cloudSyncDebounced() {
+  if (!FIREBASE_ENABLED || isGuestMode || !currentUser) return;
+  clearTimeout(_syncDebounce);
+  _syncDebounce = setTimeout(() => saveToCloud(currentUser.uid), 1500);
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'24px', left:'50%', transform:'translateX(-50%)',
+    background:'var(--text)', color:'var(--bg)', padding:'10px 22px',
+    borderRadius:'10px', fontSize:'.85rem', fontWeight:'600',
+    zIndex:'99999', boxShadow:'0 4px 20px rgba(0,0,0,.2)',
+    opacity:'0', transition:'opacity .3s'
+  });
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+let _appInitialized = false;
+function initApp() {
+  if (_appInitialized) { render(); return; }
+  _appInitialized = true;
+  document.getElementById('inp-name').addEventListener('keydown', e => {
+    if (e.key==='Enter') addTask();
+  });
+  renderQuote(quoteIndex);
+  render();
+  document.getElementById('focus-ring').style.strokeDasharray = RING_CIRCUMFERENCE;
+  document.getElementById('focus-ring').style.strokeDashoffset = 0;
+}
+
 // ══════════════════════════════════════════════════════
 //  QUOTES  — 100 curated quotes, rotate by day of year
 // ══════════════════════════════════════════════════════
@@ -1989,8 +2334,8 @@ function jumpToToday() {
 // ══════════════════════════════════════════════════════
 //  TASK APP  STATE
 // ══════════════════════════════════════════════════════
-let tasks   = JSON.parse(localStorage.getItem('todo-v122-tasks')   || '[]');
-let archive = JSON.parse(localStorage.getItem('todo-v122-archive') || '[]');
+let tasks   = [];
+let archive = [];
 
 const _n = new Date();
 let calYear     = _n.getFullYear();
@@ -2220,8 +2565,9 @@ function deleteArchivedByIndex(idx) {
   if (idx>=0 && idx<archive.length) { archive.splice(idx,1); save(); render(); }
 }
 function save() {
-  localStorage.setItem('todo-v122-tasks',   JSON.stringify(tasks));
-  localStorage.setItem('todo-v122-archive', JSON.stringify(archive));
+  localStorage.setItem('todo-v123-tasks',   JSON.stringify(tasks));
+  localStorage.setItem('todo-v123-archive', JSON.stringify(archive));
+  cloudSyncDebounced();
 }
 
 // ── Render ─────────────────────────────────────────────
@@ -2700,7 +3046,7 @@ let focusSecsLeft  = FOCUS_DURATIONS.focus;
 let focusTotalSecs = FOCUS_DURATIONS.focus;
 let focusInterval  = null;
 let pomodoroCount  = 0;
-let focusSessions  = JSON.parse(localStorage.getItem('todo-v122-focus') || '[]');
+let focusSessions = JSON.parse(localStorage.getItem('todo-v123-focus') || '[]');
 
 function setFocusMode(mode) {
   if (focusState==='running'||focusState==='paused') return; // can't switch while active
@@ -2857,7 +3203,7 @@ function stopFocus() {
   renderFocusControls();
   updateFocusLabel();
   document.getElementById('focus-timer-card').classList.remove('complete-glow');
-  document.title = 'Todo V 1.22';
+  document.title = 'Todo V 1.23';
 }
 
 function resetFocus() {
@@ -2893,7 +3239,7 @@ function focusTick() {
   updateFocusLabel();
   // update page title with timer
   if (focusState==='running'||focusState==='paused') {
-    document.title = `${fmtTimer(focusSecsLeft)} — Todo V 1.22`;
+    document.title = `${fmtTimer(focusSecsLeft)} — Todo V 1.23`;
   }
 }
 
@@ -2930,11 +3276,12 @@ function onFocusComplete() {
   // keep only today's sessions
   const todayPrefix = todayStr();
   focusSessions = focusSessions.filter(s => s.completedAt.startsWith(todayPrefix));
-  localStorage.setItem('todo-v122-focus', JSON.stringify(focusSessions));
+  localStorage.setItem('todo-v123-focus', JSON.stringify(focusSessions));
+  cloudSyncDebounced();
 
   // visual
   document.getElementById('focus-timer-card').classList.add('complete-glow');
-  document.title = 'Done! — Todo V 1.22';
+  document.title = 'Done! — Todo V 1.23';
   updatePomoDots();
   renderFocusControls();
   updateFocusLabel();
@@ -3397,7 +3744,7 @@ function freqToRRULE(task) {
 
 // ── Build single ICS event ──
 function taskToICSEvent(t) {
-  const uid = `todo-v122-${t.id}@todoapp`;
+  const uid = `todo-v123-${t.id}@todoapp`;
   const stamp = icsNow();
   const summary = t.name.replace(/[,;\\]/g, '\\$&');
   const desc = [];
@@ -3444,7 +3791,7 @@ function buildICS(taskList) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//TodoApp//V1.22//EN',
+    'PRODID:-//TodoApp//V1.23//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     events,
@@ -3555,15 +3902,7 @@ function downloadICSAll() {
   downloadICSFile(buildICS(tasks), 'todo-all-tasks.ics');
 }
 
-// ── Init ───────────────────────────────────────────────
-document.getElementById('inp-name').addEventListener('keydown', e => {
-  if (e.key==='Enter') addTask();
-});
-renderQuote(quoteIndex);
-render();
-// init ring dasharray
-document.getElementById('focus-ring').style.strokeDasharray = RING_CIRCUMFERENCE;
-document.getElementById('focus-ring').style.strokeDashoffset = 0;
+// ── Init is handled by initApp() called from auth flow ──
 </script>
 </body>
 </html>
