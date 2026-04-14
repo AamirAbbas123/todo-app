@@ -1357,14 +1357,31 @@
       <input class="auth-input" type="password" id="login-pass" placeholder="Password" autocomplete="current-password" />
       <button class="btn-auth-primary" onclick="loginUser()">Sign In</button>
       <div class="auth-switch">
+        <a onclick="showForgotPassword()" style="font-size:.78rem">Forgot password?</a>
+      </div>
+      <div class="auth-switch">
         Don't have an account? <a onclick="showSignup()">Create one</a>
+      </div>
+    </div>
+
+    <!-- Forgot Password Form (hidden) -->
+    <div class="auth-form" id="forgot-form" style="display:none">
+      <input class="auth-input" type="text" id="forgot-name" placeholder="Your name or email" autocomplete="username" />
+      <input class="auth-input" type="email" id="forgot-email" placeholder="Recovery email you used during signup" autocomplete="email" />
+      <div id="reset-step2" style="display:none">
+        <input class="auth-input" type="password" id="reset-pass" placeholder="New password (min 4 chars)" autocomplete="new-password" />
+        <input class="auth-input" type="password" id="reset-pass2" placeholder="Confirm new password" autocomplete="new-password" />
+      </div>
+      <button class="btn-auth-primary" id="forgot-btn" onclick="handleForgotPassword()">Verify Identity</button>
+      <div class="auth-switch">
+        Remember your password? <a onclick="showLogin()">Sign in</a>
       </div>
     </div>
 
     <!-- Signup Form (hidden initially) -->
     <div class="auth-form" id="signup-form" style="display:none">
       <input class="auth-input" type="text" id="signup-name" placeholder="Display name" autocomplete="name" />
-      <input class="auth-input" type="email" id="signup-email" placeholder="Email (optional, for recovery)" autocomplete="email" />
+      <input class="auth-input" type="email" id="signup-email" placeholder="Email (for password recovery)" autocomplete="email" />
       <input class="auth-input" type="password" id="signup-pass" placeholder="Create password (min 4 chars)" autocomplete="new-password" />
       <input class="auth-input" type="password" id="signup-pass2" placeholder="Confirm password" autocomplete="new-password" />
       <button class="btn-auth-primary" onclick="signupUser()">Create Account</button>
@@ -1819,6 +1836,7 @@ function userDataKey(userId) {
 function showLogin() {
   document.getElementById('login-form').style.display = '';
   document.getElementById('signup-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = 'none';
   document.getElementById('auth-card-title').textContent = 'Welcome Back';
   document.getElementById('auth-card-subtitle').textContent = 'Sign in to access your personalized tasks';
   hideAuthError();
@@ -1826,9 +1844,26 @@ function showLogin() {
 function showSignup() {
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('signup-form').style.display = '';
+  document.getElementById('forgot-form').style.display = 'none';
   document.getElementById('auth-card-title').textContent = 'Create Account';
   document.getElementById('auth-card-subtitle').textContent = 'Set up your personal task space';
   hideAuthError();
+}
+function showForgotPassword() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('signup-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = '';
+  document.getElementById('reset-step2').style.display = 'none';
+  document.getElementById('forgot-btn').textContent = 'Verify Identity';
+  document.getElementById('forgot-btn').onclick = handleForgotPassword;
+  document.getElementById('auth-card-title').textContent = 'Reset Password';
+  document.getElementById('auth-card-subtitle').textContent = 'Enter your name/email and recovery email to verify your identity';
+  hideAuthError();
+  // Clear fields
+  document.getElementById('forgot-name').value = '';
+  document.getElementById('forgot-email').value = '';
+  if(document.getElementById('reset-pass')) document.getElementById('reset-pass').value = '';
+  if(document.getElementById('reset-pass2')) document.getElementById('reset-pass2').value = '';
 }
 function showAuthError(msg) {
   const el = document.getElementById('auth-error');
@@ -1837,6 +1872,83 @@ function showAuthError(msg) {
 }
 function hideAuthError() {
   document.getElementById('auth-error').style.display = 'none';
+}
+
+// ── Forgot Password ──────────────────────────────────
+let _resetUserId = null;
+
+function handleForgotPassword() {
+  const nameInput = document.getElementById('forgot-name').value.trim();
+  const emailInput = document.getElementById('forgot-email').value.trim();
+
+  if (!nameInput) return showAuthError('Please enter your account name or email.');
+  if (!emailInput) return showAuthError('Please enter the recovery email you used during signup.');
+
+  const accounts = getAccounts();
+  const userId = nameInput.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+  // Try matching by userId + email
+  let matched = null;
+  let matchedId = null;
+
+  if (accounts[userId] && accounts[userId].email && accounts[userId].email.toLowerCase() === emailInput.toLowerCase()) {
+    matched = accounts[userId];
+    matchedId = userId;
+  } else {
+    // Try matching by email in all accounts
+    for (const [id, acc] of Object.entries(accounts)) {
+      if (acc.email && acc.email.toLowerCase() === emailInput.toLowerCase()) {
+        // Check if name also matches
+        if (acc.name.toLowerCase() === nameInput.toLowerCase() || id === userId) {
+          matched = acc;
+          matchedId = id;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!matched) {
+    return showAuthError('No account found matching this name and recovery email. Make sure you entered the same email you used during signup.');
+  }
+
+  if (!matched.email) {
+    return showAuthError('This account was created without a recovery email. Password cannot be reset.');
+  }
+
+  // Identity verified — show new password fields
+  _resetUserId = matchedId;
+  hideAuthError();
+  document.getElementById('reset-step2').style.display = '';
+  document.getElementById('forgot-btn').textContent = 'Set New Password';
+  document.getElementById('forgot-btn').onclick = resetPassword;
+  document.getElementById('auth-card-subtitle').textContent = 'Identity verified for "' + matched.name + '". Enter your new password below.';
+  document.getElementById('forgot-name').disabled = true;
+  document.getElementById('forgot-email').disabled = true;
+  showToast('Identity verified! Set your new password.');
+}
+
+function resetPassword() {
+  const pass  = document.getElementById('reset-pass').value;
+  const pass2 = document.getElementById('reset-pass2').value;
+
+  if (pass.length < 4) return showAuthError('Password must be at least 4 characters.');
+  if (pass !== pass2) return showAuthError('Passwords do not match.');
+
+  const accounts = getAccounts();
+  if (!_resetUserId || !accounts[_resetUserId]) {
+    return showAuthError('Something went wrong. Please try again.');
+  }
+
+  accounts[_resetUserId].password = hashPassword(pass);
+  saveAccounts(accounts);
+
+  _resetUserId = null;
+  document.getElementById('forgot-name').disabled = false;
+  document.getElementById('forgot-email').disabled = false;
+
+  showToast('Password reset successfully! You can now sign in.');
+  showLogin();
 }
 
 // ── Sign Up ──────────────────────────────────────────
