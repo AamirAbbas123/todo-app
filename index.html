@@ -1805,6 +1805,13 @@
 
 <script>
 // ══════════════════════════════════════════════════════
+//  GLOBAL STATE (declared early for auth access)
+// ══════════════════════════════════════════════════════
+let tasks   = [];
+let archive = [];
+let focusSessions = [];
+
+// ══════════════════════════════════════════════════════
 //  LOCAL ACCOUNT SYSTEM
 // ══════════════════════════════════════════════════════
 
@@ -2606,9 +2613,6 @@ function jumpToToday() {
 // ══════════════════════════════════════════════════════
 //  TASK APP  STATE
 // ══════════════════════════════════════════════════════
-let tasks   = [];
-let archive = [];
-
 const _n = new Date();
 let calYear     = _n.getFullYear();
 let calMonth    = _n.getMonth();
@@ -3318,7 +3322,7 @@ let focusSecsLeft  = FOCUS_DURATIONS.focus;
 let focusTotalSecs = FOCUS_DURATIONS.focus;
 let focusInterval  = null;
 let pomodoroCount  = 0;
-let focusSessions = JSON.parse(localStorage.getItem('todo-v124-focus') || '[]');
+// focusSessions declared at top, loaded by auth flow
 
 function setFocusMode(mode) {
   if (focusState==='running'||focusState==='paused') return; // can't switch while active
